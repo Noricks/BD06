@@ -3,14 +3,15 @@ from __future__ import annotations
 # from pyspark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 from pyspark.mllib.linalg import Vector
 # from pyspark.rdd import TypedRDD
-from DBSCAN.DBSCANGraph import DBSCANGraph
-from DBSCAN.DBSCANPoint import DBSCANPoint
-from DBSCAN.LocalDBSCANNaive import LocalDBSCANNaive
+from DBSCANGraph import DBSCANGraph
+from DBSCANPoint import DBSCANPoint
+from LocalDBSCANNaive import LocalDBSCANNaive
 from TypedRDD import TypedRDD
-from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCAN.DBSCANRectangle import DBSCANRectangle
+from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
+from DBSCANRectangle import DBSCANRectangle
 from typing import *
 from collections import ChainMap
+from EvenSplitPartitioner import EvenSplitPartitioner
 from functools import reduce
 # Top level method for calling DBSCAN
 
@@ -28,7 +29,7 @@ from functools import reduce
 
 #
 # }
-from DBSCAN.EvenSplitPartitioner import EvenSplitPartitioner
+
 
 """
 
@@ -97,11 +98,11 @@ class DBSCAN:
         # localPartitions.foreach(p =>  logDebug(p.toString))
 
         # grow partitions to include eps TODO map
-        localMargins: List[((DBSCANRectangle, DBSCANRectangle, DBSCANRectangle), int)] = \
-            localPartitions \
-                .map(lambda p, _: (p.shrink(self.eps), p, p.shrink(-self.eps))) \
-                .zipWithIndex
 
+        tmp_l = list(map(lambda p, _: (p.shrink(self.eps), p, p.shrink(-self.eps)), localPartitions))
+        localMargins: List[((DBSCANRectangle, DBSCANRectangle, DBSCANRectangle), int)] = \
+        list(zip(tmp_l, range(len(tmp_l))))
+        # list(zip(a, range(len(a))))
         margins = vectors.context.broadcast(localMargins)
 
         duplicated : TypedRDD[(int, DBSCANPoint)]
@@ -181,7 +182,8 @@ class DBSCAN:
                 # logDebug(s"Connected clusters $connectedClusters")
                 toadd : ChainMap = ChainMap(
                 dict(map(lambda a: (a, nextId), connectedClusters)))
-                return nextId, map_.copy().update(toadd)
+                tmp = map_.copy().update(toadd)
+                return nextId, tmp
             else:
                 return id_, map_
 
@@ -221,7 +223,8 @@ class DBSCAN:
 
             prev = all_.get(point)
             if prev is None:
-                return all_.copy().update({point: point})
+                tmp = all_.copy().update({point: point})
+                return tmp
             else:
                 # override previous entry unless new entry is noise
                 if point.flag != Flag.Noise:
