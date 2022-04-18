@@ -22,8 +22,8 @@ from typing import Iterable, List
 from pyspark.mllib.linalg import Vectors
 # import queue
 
-from DBSCAN.DBSCANPoint import DBSCANPoint
-from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
+from DBSCANPoint import DBSCANPoint
+from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
 import operator, functools
 
 """  
@@ -90,16 +90,16 @@ class LocalDBSCANNaive:
 
         # totalClusters = labeledPoints.foldLeft(DBSCANLabeledPoint.Unknown)(inside_fuc)
         # totalClusters = functools.reduce(inside_fuc, labeledPoints)
-        print("total points: ", len(labeledPoints))
-        q = len(labeledPoints)
+        # print("total points: ", len(labeledPoints))
+        # q = len(labeledPoints)
         index = 0
         for i in labeledPoints:
             cluster = cluster + inside_fuc(i)
             index = index + 1
-            print("total: {}%".format(index/q))
-        totalClusters = cluster
+            # print("total: {}%".format(index/q))
+        # totalClusters = cluster
 
-        print("totalClusters clusters", str(totalClusters))
+        # print("totalClusters clusters", str(totalClusters))
         # logInfo(s"found: $totalClusters clusters")
 
         return labeledPoints
@@ -141,7 +141,7 @@ class LocalDBSCANNaive:
                     neighbor.flag = Flag.Border
 
         while allNeighbors.empty() is False:
-            print(len(allNeighbors.list))
+            # print(len(allNeighbors.list))
             k = allNeighbors.dequeue()
             for i in k:
                 # print(len(allNeighbors.list))

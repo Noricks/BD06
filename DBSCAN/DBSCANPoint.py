@@ -7,12 +7,20 @@ from dataclasses import dataclass, field
 @dataclass(frozen=False)
 class DBSCANPoint:
     vector: Vector
-    x: float = field(init=False)
-    y: float = field(init=False)
+    # x: float = field(init=False)
+    # y: float = field(init=False)
 
-    def __post_init__(self):
-        self.x = self.vector[0]
-        self.y = self.vector[1]
+    # def __post_init__(self):
+    #     self.x = self.vector[0]
+    #     self.y = self.vector[1]
+
+    @property
+    def x(self):
+        return self.vector[0]
+
+    @property
+    def y(self):
+        return self.vector[0]
 
     # def __init__(self, vector: Vector):
     #     self.vector = vector  # TODO: meaning unclear
@@ -23,3 +31,6 @@ class DBSCANPoint:
         dx = other.x - self.x
         dy = other.y - self.y
         return (dx * dx) + (dy * dy)
+
+    def __hash__(self):
+        return self.vector.__hash__()

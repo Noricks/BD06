@@ -1,8 +1,5 @@
 from __future__ import annotations
-# from pyspark.internal.Logging
-# from pyspark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
-from pyspark.mllib.linalg import Vector
-# from pyspark.rdd import TypedRDD
+from pyspark.mllib.linalg import Vector, Vectors
 from DBSCANGraph import DBSCANGraph
 from DBSCANPoint import DBSCANPoint
 from LocalDBSCANNaive import LocalDBSCANNaive
@@ -10,61 +7,59 @@ from TypedRDD import TypedRDD
 from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
 from DBSCANRectangle import DBSCANRectangle
 from typing import *
-from collections import ChainMap
 from EvenSplitPartitioner import EvenSplitPartitioner
 from functools import reduce
-# Top level method for calling DBSCAN
+import logging
+import sys
 
-# object DBSCAN {
-#     """
-#      Train a DBSCAN Model using the given set of parameters
-#      *
-#      @param data training points stored as `TypedRDD[Vector]`
-#      only the first two points of the vector are taken into consideration
-#      @param eps the maximum distance between two points for them to be considered as part
-#      of the same region
-#      @param minPoints the minimum number of points required to form a dense region
-#      @param maxPointsPerPartition the largest number of points in a single partition
-#     """
+def getlogger(name, level=logging.INFO):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    if logger.handlers:
+        # or else, as I found out, we keep adding handlers and duplicate messages
+        pass
+    else:
+        ch = logging.StreamHandler(sys.stderr)
+        ch.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    return logger
 
-#
-# }
-
-
-"""
-
-    A parallel implementation of DBSCAN clustering. The implementation will split the data space
-    into a number of partitions, making a best effort to keep the number of points in each
-    partition under `maxPointsPerPartition`. After partitioning, traditional DBSCAN
-    clustering will be run in parallel for each partition and finally the results
-    of each partition will be merged to identify global clusters.
- 
-    This is an iterative algorithm that will make multiple passes over the data,
-    any given RDDs should be cached by the user.
-"""
+# global variables
 Margins = Tuple[DBSCANRectangle, DBSCANRectangle, DBSCANRectangle]
 ClusterId = Tuple[int, int]
+logger = getlogger(__name__)
 
 # private
 class DBSCAN:
 
     def __init__(self,
-        eps: float,
-        minPoints: int,
-        maxPointsPerPartition: int,
-        partitions: List[(int, DBSCANRectangle)], # @transient
-        labeledPartitionedPoints: TypedRDD[(int, DBSCANLabeledPoint)] # private  @transient
-    ):
+                 eps: float,
+                 minPoints: int,
+                 maxPointsPerPartition: int,
+                 partitions: List[(int, DBSCANRectangle)],  # @transient
+                 labeledPartitionedPoints: TypedRDD[(int, DBSCANLabeledPoint)]  # private  @transient
+                 ):
         self.eps = eps
         self.minPoints = minPoints
         self.maxPointsPerPartition = maxPointsPerPartition
         self.partitions = partitions
         self.labeledPartitionedPoints = labeledPartitionedPoints
-
         self.minimumRectangleSize = 2 * eps
+        """
+            A parallel implementation of DBSCAN clustering. The implementation will split the data space
+            into a number of partitions, making a best effort to keep the number of points in each
+            partition under `maxPointsPerPartition`. After partitioning, traditional DBSCAN
+            clustering will be run in parallel for each partition and finally the results
+            of each partition will be merged to identify global clusters.
+        
+            This is an iterative algorithm that will make multiple passes over the data,
+            any given RDDs should be cached by the user.
+        """
 
     def labeledPoints(self) -> TypedRDD[DBSCANLabeledPoint]:
-        return self.labeledPartitionedPoints.values
+        return self.labeledPartitionedPoints.values()
 
     @classmethod
     def train(cls,
@@ -72,21 +67,31 @@ class DBSCAN:
               eps: float,
               minPoints: int,
               maxPointsPerPartition: int) -> DBSCAN:
+        """
+         Train a DBSCAN Model using the given set of parameters
+         *
+         @param data training points stored as `TypedRDD[Vector]`
+         only the first two points of the vector are taken into consideration
+         @param eps the maximum distance between two points for them to be considered as part
+         of the same region
+         @param minPoints the minimum number of points required to form a dense region
+         @param maxPointsPerPartition the largest number of points in a single partition
+        """
 
-              return  DBSCAN(eps, minPoints, maxPointsPerPartition, None, None).__train(data)
-
+        return DBSCAN(eps, minPoints, maxPointsPerPartition, None, None).__train(data)
 
     # private
     def __train(self, vectors: TypedRDD[Vector]) -> DBSCAN:
 
-        add = lambda a,b: a+b
+        logger.info("training start")
+        add = lambda x, y: x + y
         # generate the smallest rectangles that split the space
         # and count how many points are contained in each one of them
         minimumRectanglesWithCount = set(
-            vectors \
+            vectors
                 .map(self.toMinimumBoundingRectangle) \
                 .map(lambda x: (x, 1)) \
-                .aggregateByKey(0)(add, add) \
+                .aggregateByKey(zeroValue=0, seqFunc=add, combFunc=add) \
                 .collect()
         )
 
@@ -97,22 +102,22 @@ class DBSCAN:
         # logDebug("Found partitions: ")
         # localPartitions.foreach(p =>  logDebug(p.toString))
 
-        # grow partitions to include eps TODO map
-
-        tmp_l = list(map(lambda p, _: (p.shrink(self.eps), p, p.shrink(-self.eps)), localPartitions))
+        # grow partitions to include eps
+        tmp_l = list(map(lambda p: (p[0].shrink(self.eps), p[0], p[0].shrink(-self.eps)), localPartitions))
         localMargins: List[((DBSCANRectangle, DBSCANRectangle, DBSCANRectangle), int)] = \
-        list(zip(tmp_l, range(len(tmp_l))))
-        # list(zip(a, range(len(a))))
+            list(zip(tmp_l, range(len(tmp_l))))
         margins = vectors.context.broadcast(localMargins)
 
-        duplicated : TypedRDD[(int, DBSCANPoint)]
+        duplicated: TypedRDD[(int, DBSCANPoint)]
+
         # assign each point to its proper partition
         def vec_func(point):
             out = []
-            for  ((inner, main, outer), id_) in margins.value:
+            for ((inner, main, outer), id_) in margins.value:
                 if outer.contains(point):
                     out.append((id_, point))
             return out
+
         duplicated = vectors.map(DBSCANPoint).flatMap(vec_func)
 
         numOfPartitions = len(localPartitions)
@@ -122,48 +127,45 @@ class DBSCAN:
             duplicated \
                 .groupByKey(numOfPartitions) \
                 .flatMapValues(lambda points:
-                  LocalDBSCANNaive(self.eps, self.minPoints).fit(points)
+                               LocalDBSCANNaive(self.eps, self.minPoints).fit(points)
                                ) \
                 .cache()
 
         # find all candidate points for merging clusters and group them
-        def mergePoints_func(partition, point):
-            margins.value \
-                .filter(
-                    # x -> ((inner, main, _), _)
-                    lambda x: x[0][1].contains(point) and not x[0][0].almostContains(point)
-                ) \
-                .map(
-                    # x -> (_, newPartition)
-                    lambda _, newPartition: (newPartition, (partition, point))
-                )
+        def mergePoints_func(input):
+            partition: int
+            point: DBSCANLabeledPoint
+            partition, point = input
+            return list(map(lambda newPartition: (newPartition[1], (partition, point)),
+                            filter(lambda x: x[0][1].contains(point) and not x[0][0].almostContains(point),
+                                   margins.value)))
 
-
-        mergePoints = \
+        mergePoints: TypedRDD[(int, Iterable[(int, DBSCANLabeledPoint)])] = \
             clustered \
                 .flatMap(mergePoints_func) \
-                .groupByKey() \
+                .groupByKey()
 
-        # logDebug("About to find adjacencies")
+        logger.info("About to find adjacencies")
+
         # find all clusters with aliases from_ merging candidates
-        adjacencies = \
+        adjacencies: List[((int, int), (int, int))] = \
             mergePoints \
                 .flatMapValues(self.findAdjacencies) \
-                .values \
-                .collect() \
+                .values() \
+                .collect()
 
         # generated adjacency graph
-        adjacencyGraph: DBSCANGraph[(int, int)] = adjacencies.foldLeft(DBSCANGraph[ClusterId]())(
-            lambda x: x[0].connect(x[1][0], x[1][1]) # (graph, (from_, to))
-        )
+        adjacencyGraph: DBSCANGraph[(int, int)] = DBSCANGraph[ClusterId](ChainMap({}))
+        for from_, to in adjacencies:
+            adjacencyGraph.connect(from_, to)
 
-        # logDebug("About to find all cluster ids")
+        logger.info("About to find all cluster ids")
         # find all cluster ids
         # x -> (_, point) \
-        localClusterIds:List[(int,int)]  = list(
+        localClusterIds: List[(int, int)] = list(
             clustered \
-                .filter(lambda _,x: x.flag != Flag.Noise) \
-                .mapValues(lambda x : x.cluster)  \
+                .filter(lambda x: x[1].flag != Flag.Noise) \
+                .mapValues(lambda x: x.cluster) \
                 .distinct() \
                 .collect()
         )
@@ -171,40 +173,40 @@ class DBSCAN:
         # assign a global Id to all clusters, where connected clusters get the same id
 
         def clusterIdToGlobalId_func(
-            id_:int,
-            map_: ChainMap[(int,int),int],
-            clusterId: (int, int)):
+                id_: int,
+                map_: ChainMap[(int, int), int],
+                clusterId: (int, int)):
 
             x = map_.get(clusterId)
             if x is None:
                 nextId = id_ + 1
-                connectedClusters:Set[(int, int)] = adjacencyGraph.getConnected(clusterId).union({clusterId})
-                # logDebug(s"Connected clusters $connectedClusters")
-                toadd : ChainMap = ChainMap(
-                dict(map(lambda a: (a, nextId), connectedClusters)))
-                tmp = map_.copy().update(toadd)
+                connectedClusters: Set[(int, int)] = adjacencyGraph.getConnected(clusterId).union({clusterId})
+                logger.info("Connected clusters {}".format(connectedClusters))
+                toadd: ChainMap = ChainMap(
+                    dict(map(lambda a: (a, nextId), connectedClusters)))
+                tmp = map_.copy()
+                tmp.update(toadd)
                 return nextId, tmp
             else:
                 return id_, map_
 
-        total, clusterIdToGlobalId = (0, ChainMap[ClusterId, int]())
+        total, clusterIdToGlobalId = (0, ChainMap[ClusterId, int]({}))
         for i in localClusterIds:
             total, clusterIdToGlobalId = clusterIdToGlobalId_func(total, clusterIdToGlobalId, i)
 
-
-        # logDebug("Global Clusters")
+        logger.info("Global Clusters")
         # clusterIdToGlobalId.foreach(e => # logDebug(e.toString))
-        # logInfo(s"Total Clusters: ${localClusterIds.size}, Unique: $total")
+        logger.info("Total Clusters: {}, Unique: {}".format(len(localClusterIds), total))
 
         clusterIds = vectors.context.broadcast(clusterIdToGlobalId)
 
-        # logDebug("About to relabel inner points")
+        logger.info("About to relabel inner points")
         # relabel non-duplicated points
         def labeledInner_func(x):
             partition = x[0]
             point = x[1]
             if point.flag != Flag.Noise:
-                point.cluster = clusterIds.value((partition, point.cluster))
+                point.cluster = clusterIds.value.get((partition, point.cluster))
 
             return (partition, point)
 
@@ -213,17 +215,16 @@ class DBSCAN:
                 .filter(lambda x: self.isInnerPoint(x, margins.value)) \
                 .map(labeledInner_func)
 
-        # logDebug("About to relabel outer points")
-        def labeledOuter_func(x):
-            all_ = x[0]
-            partition = x[0][0]
-            point = x[0][1]
+        logger.info("About to relabel outer points")
+        def labeledOuter_func(all_, x):
+            partition, point = x
             if point.flag != Flag.Noise:
-                point.cluster = clusterIds.value((partition, point.cluster))
+                point.cluster = clusterIds.value.get((partition, point.cluster))
 
             prev = all_.get(point)
             if prev is None:
-                tmp = all_.copy().update({point: point})
+                tmp = all_.copy()
+                tmp.update({point: point})
                 return tmp
             else:
                 # override previous entry unless new entry is noise
@@ -232,21 +233,16 @@ class DBSCAN:
                     prev.cluster = point.cluster
                 return all_
 
-
         # de-duplicate and label merge points
         labeledOuter = \
             mergePoints.flatMapValues(lambda partition:
-                partition.foldLeft(ChainMap[DBSCANPoint, DBSCANLabeledPoint]())(
-                    labeledOuter_func
-                        ).values
-            )
+                                      reduce(
+                                          labeledOuter_func, partition, ChainMap[DBSCANPoint, DBSCANLabeledPoint]({}))
+                                      .values()
+                                      )
 
-        finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins))
-        #     localMargins.map(
-        #      # x -> ((_, p, _), index)
-        # )
-
-        # logDebug("Done")
+        finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins)) # x -> ((_, p, _), index)
+        logger.info("Done")
 
         return DBSCAN(
             self.eps,
@@ -255,29 +251,27 @@ class DBSCAN:
             finalPartitions,
             labeledInner.union(labeledOuter))
 
-
-
     # Find the appropriate label to the given `vector`
     # This method is not yet implemented
     def predict(self, vector: Vector) -> DBSCANLabeledPoint:
         raise NotImplementedError("")
 
-
     # private
     def isInnerPoint(self,
-        entry: (int, DBSCANLabeledPoint),
-        margins: List[(Margins, int)]) -> bool:
-        (partition, point) =  entry
+                     entry: (int, DBSCANLabeledPoint),
+                     margins: List[(Margins, int)]) -> bool:
+        (partition, point) = entry
 
-        ((inner, _, _), _) = next(filter(lambda _, id_: id_ == partition, margins)) # head
+        ((inner, _, _), _) = next(filter(lambda id_: id_[1] == partition, margins))  # head
 
         return inner.almostContains(point)
 
     # private
     def findAdjacencies(self,
-        partition: Iterable[(int, DBSCANLabeledPoint)]) -> Set[((int, int), (int, int))]:
+                        partition: Iterable[(int, DBSCANLabeledPoint)]) -> Set[((int, int), (int, int))]:
 
-        _seen, _adjacencies  = (ChainMap[DBSCANPoint, ClusterId](), Set[(ClusterId, ClusterId)]())
+        _seen: ChainMap[DBSCANPoint, ClusterId] = ChainMap({})
+        _adjacencies: Set[(ClusterId, ClusterId)] = set()
 
         for _partition, point in partition:
             # noise points are not relevant for adjacencies
@@ -289,7 +283,7 @@ class DBSCAN:
                 if prevClusterId is None:
                     _seen.update({point: clusterId})
                 else:
-                    _adjacencies =  _adjacencies.union({(prevClusterId, clusterId)})
+                    _adjacencies = _adjacencies.union({(prevClusterId, clusterId)})
 
         return _adjacencies
 
@@ -300,16 +294,40 @@ class DBSCAN:
         y = self.corner(point.y)
         return DBSCANRectangle(x, y, x + self.minimumRectangleSize, y + self.minimumRectangleSize)
 
-
-   # private
-    def corner(self, p: float)-> float:
-        return  int(self.shiftIfNegative(p) / self.minimumRectangleSize) * self.minimumRectangleSize
+    # private
+    def corner(self, p: float) -> float:
+        return int(self.shiftIfNegative(p) / self.minimumRectangleSize) * self.minimumRectangleSize
 
     # private
     def shiftIfNegative(self, p: float) -> float:
-       if p < 0:
-           return p - self.minimumRectangleSize
-       else:
-           return p
+        if p < 0:
+            return p - self.minimumRectangleSize
+        else:
+            return p
 
+
+if __name__ == '__main__':
+    from pyspark import SparkConf, SparkContext
+
+    # %%
+    conf = SparkConf().setMaster("local[*]").setAppName("My App")
+    sc = SparkContext(conf=conf)
+    a = sc.parallelize([1, 2, 3])
+    a.count()
+    logger.warning("pyspark script logger initialized")
+    # %%
+    #  Load data
+    # data = sc.textFile("./mnist_test.csv")
+    data = sc.textFile("../dataset/labeled_data.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    model = DBSCAN.train(lines, eps=0.3,
+                         minPoints=10, maxPointsPerPartition=250)
+    # %%
+    corresponding_dict = {3: 2, 2: 1, 1: 3, 0: 0}
+    corresponding_func = lambda x: corresponding_dict[x]
+
+    clustered = model.labeledPoints() \
+        .map(lambda p: (p, p.cluster)) \
+        .collectAsMap()
 

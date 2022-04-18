@@ -7,7 +7,7 @@ from typing import List, Set, Callable, Tuple
 
 import numpy as np
 
-from DBSCAN.DBSCANRectangle import DBSCANRectangle
+from DBSCANRectangle import DBSCANRectangle
 
 '''
     Helper methods for calling the partitioner
@@ -35,9 +35,9 @@ class EvenSplitPartitioner:
 
     @classmethod
     def partition(cls,
-            toSplit: Set[(DBSCANRectangle, int)],
-            maxPointsPerPartition: int,
-            minimumRectangleSize: float) -> List[(DBSCANRectangle, int)]:
+                  toSplit: Set[(DBSCANRectangle, int)],
+                  maxPointsPerPartition: int,
+                  minimumRectangleSize: float) -> List[(DBSCANRectangle, int)]:
         e = EvenSplitPartitioner(maxPointsPerPartition, minimumRectangleSize)
         return e.findPartitions(toSplit)
 
@@ -77,7 +77,7 @@ class EvenSplitPartitioner:
                 if self.__canBeSplit(rectangle):
                     # logTrace(s"About to split: $rectangle")
                     def cost(r: DBSCANRectangle):
-                        return int(abs((pointsIn(rectangle) / 2) - pointsIn(r)))  # TODO: should be Int
+                        return int(abs((pointsIn(rectangle) // 2) - pointsIn(r)))  # TODO: should be Int
 
                     (split1, split2) = self.split(rectangle, cost)
                     # logTrace(s"Found split: $split1, $split2")
@@ -100,8 +100,9 @@ class EvenSplitPartitioner:
                 return current
             else:
                 return smallest
+        tmp = self.__findPossibleSplits(rectangle)
 
-        smallestSplit = reduce(inner_func, self.__findPossibleSplits(rectangle))  # reduce left
+        smallestSplit = reduce(inner_func, tmp)  # reduce left
 
         return smallestSplit, (self.__complement(smallestSplit, rectangle))
 
@@ -127,8 +128,8 @@ class EvenSplitPartitioner:
     def __findPossibleSplits(self, box: DBSCANRectangle) -> Set[DBSCANRectangle]:
 
         # logTrace(s"Possible splits: $splits")
-        xSplits = np.array((box.x + self.minimumRectangleSize), box.x2, self.minimumRectangleSize)
-        ySplits = np.array((box.y + self.minimumRectangleSize), box.y2, self.minimumRectangleSize)
+        xSplits = np.arange((box.x + self.minimumRectangleSize), box.x2, self.minimumRectangleSize)
+        ySplits = np.arange((box.y + self.minimumRectangleSize), box.y2, self.minimumRectangleSize)
 
         splits = list(map(lambda x: DBSCANRectangle(box.x, box.y, x, box.y2), xSplits)) + list(
             map(lambda y: DBSCANRectangle(box.x, box.y, box.x2, y), ySplits))
@@ -136,7 +137,7 @@ class EvenSplitPartitioner:
 
     # Returns true if the given rectangle can be split into at least two rectangles of minimum size
     def __canBeSplit(self, box: DBSCANRectangle) -> bool:
-        return (box.x2 - box.x) > self.minimumRectangleSize * 2 or (box.y2 - box.y) > self.minimumRectangleSize * 2
+        return (box.x2 - box.x > self.minimumRectangleSize * 2) or (box.y2 - box.y > self.minimumRectangleSize * 2)
 
     def pointsInRectangle(self, space: Set[RectangleWithCount], rectangle: DBSCANRectangle) -> int:
         f = filter(lambda x: rectangle.contains(x[0]), space)  # x[0] -> current
@@ -161,3 +162,44 @@ class EvenSplitPartitioner:
                 max(bounding.y2, c.y2))
 
         return bounding
+
+
+if __name__ == '__main__':
+    # test("should find partitions")
+
+    # section1 = (DBSCANRectangle(0, 0, 1, 1), 3)
+    # section2 = (DBSCANRectangle(0, 2, 1, 3), 6)
+    # section3 = (DBSCANRectangle(1, 1, 2, 2), 7)
+    # section4 = (DBSCANRectangle(1, 0, 2, 1), 2)
+    # section5 = (DBSCANRectangle(2, 0, 3, 1), 5)
+    # section6 = (DBSCANRectangle(2, 2, 3, 3), 4)
+    # sections = {section1, section2, section3, section4, section5, section6}
+    #
+    # partitions = EvenSplitPartitioner.partition(sections, 9, 1)
+    #
+    # expected = [(DBSCANRectangle(x=0, y=2, x2=1, y2=3), 6),
+    #             (DBSCANRectangle(x=1, y=2, x2=3, y2=3), 4),
+    #             (DBSCANRectangle(x=0, y=0, x2=2, y2=1), 5),
+    #             (DBSCANRectangle(x=2, y=0, x2=3, y2=1), 5),
+    #             (DBSCANRectangle(x=0, y=1, x2=3, y2=2), 7)]
+    #
+    # assert (partitions == expected)
+
+    # test("should find two splits")
+
+    section1 = (DBSCANRectangle(0, 0, 1, 1), 3)
+    section2 = (DBSCANRectangle(2, 2, 3, 3), 4)
+    section3 = (DBSCANRectangle(0, 1, 1, 2), 2)
+    sections = {section1, section2, section3}
+    #
+    #
+    partitions = EvenSplitPartitioner.partition(sections, 4, 1)
+
+    assert (partitions[0] == (DBSCANRectangle(1, 0, 3, 3), 4))
+    # partitions[0]
+    # should
+    # equal((DBSCANRectangle(1, 0, 3, 3), 4))
+    #o
+    # partitions(1)
+    # should
+    # equal((DBSCANRectangle(0, 1, 1, 3), 2))

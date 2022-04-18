@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections import ChainMap
+# from typing import ChainMap
 
 from typing import *
 
@@ -58,7 +58,7 @@ class DBSCANGraph(Generic[T]):
 
     # Find all vertexes that are reachable from_ `from_`
     def getConnected(self, from_: T) -> Set[T]:
-        return self.getAdjacent(set(from_), set(), set()) - from_  # set subtraction
+        return self.getAdjacent({from_}, set(), set()) - {from_}  # set subtraction
 
     # @tailrec
     # private
@@ -76,3 +76,19 @@ class DBSCANGraph(Generic[T]):
             else:
                 return self.getAdjacent(edges.difference(visited).union(tovisit), visited.union({current}),
                                         adjacent.union(edges))
+
+if __name__ == '__main__':
+    # "should return connected"
+    graph = DBSCANGraph[int](ChainMap({})).connect(1, 3)
+    connected = graph.getConnected(1)
+    assert (connected.__eq__({3}))
+
+    # "should return none for vertex"
+    graph = DBSCANGraph[int](ChainMap({})).addVertex(5).connect(1, 3)
+    connected = graph.getConnected(5)
+    assert (connected.__eq__({}))
+
+    # "should return none for unknown"
+    graph = DBSCANGraph[int](ChainMap({})).addVertex(5).connect(1, 3)
+    connected = graph.getConnected(6)
+    assert (connected.__eq__({}))
