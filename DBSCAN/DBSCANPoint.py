@@ -20,7 +20,7 @@ class DBSCANPoint:
 
     @property
     def y(self):
-        return self.vector[0]
+        return self.vector[1]
 
     # def __init__(self, vector: Vector):
     #     self.vector = vector  # TODO: meaning unclear
