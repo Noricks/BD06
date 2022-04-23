@@ -158,7 +158,11 @@ if __name__ == '__main__':
     labeled = model.fit(lines, data_label)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
+    
     # for i in labeled:
         # print(i.cluster)
     c = list(map(lambda x: x.cluster, labeled))
     sc.stop()
+    for i in labeled:
+        print(i)
+        print(i.reachDist)
