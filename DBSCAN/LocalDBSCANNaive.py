@@ -25,7 +25,9 @@ from pyspark.mllib.linalg import Vectors
 from DBSCANPoint import DBSCANPoint
 from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
 import operator, functools
+from utils import getlogger
 
+logger = getlogger(__name__)
 """  
     A naive implementation of DBSCAN. It has O(n2) complexity
     but uses no extra memory. This implementation is not used
@@ -64,7 +66,7 @@ class LocalDBSCANNaive:
 
     def fit(self, points: Iterable[DBSCANPoint]) -> Iterable[DBSCANLabeledPoint]:
 
-        # logInfo(s"About to start fitting")
+        logger.info("LocalDBSCANNaive: About to start fitting")
 
         labeledPoints = list(map(toDBSCANLabeledPoint, points))
 
@@ -100,7 +102,7 @@ class LocalDBSCANNaive:
         # totalClusters = cluster
 
         # print("totalClusters clusters", str(totalClusters))
-        # logInfo(s"found: $totalClusters clusters")
+        # logger.info("LocalDBSCANNaive: {} clusters".format(totalClusters))
 
         return labeledPoints
 
@@ -165,9 +167,6 @@ if __name__ == '__main__':
     a.count()
 
     # %%
-    # a = np.random.random((100, 2)).tolist()
-    # data = sc.parallelize(a)
-    # %%
     #  Load data
     # data = sc.textFile("./mnist_test.csv")
     data = sc.textFile("../dataset/labeled_data.csv").map(lambda x: x.strip().split(",")[:-1]).map(
@@ -181,7 +180,20 @@ if __name__ == '__main__':
         eps=0.3,
         minPoints=10)
     # maxPointsPerPartition=100)
-    labeled = model.fit(lines)
+    predictions = model.fit(lines)
     # for i in labeled:
         # print(i.cluster)
-    c = list(map(lambda x: x.cluster, labeled))
+    # %%
+    def map_index(x):
+        label = x.cluster
+        if label == 3:
+            return 2
+        elif label == 2:
+            return 3
+        else:
+            return label
+
+    pre_label = list(map(map_index, predictions))
+
+    # %%
+    accuracy  = (np.array(pre_label) == np.array(data_label)).sum() / len(data_label)
