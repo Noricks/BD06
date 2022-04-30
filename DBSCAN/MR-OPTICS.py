@@ -567,19 +567,158 @@ if __name__ == '__main__':
     # %%
     #  Load data
     # data = sc.textFile("./mnist_test.csv")
-    data = sc.textFile("newtest.csv").map(lambda x: x.strip().split(",")).map(
+    
+    """
+    data = sc.textFile("blobs10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=1,
-                         minPoints=10, maxPointsPerPartition=17000)
+    model = DBSCAN.train(lines, eps=0.5,
+                         minPoints=10, maxPointsPerPartition=3400)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 3, 3: 2, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("moons10000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=10, maxPointsPerPartition=3400)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 2, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("circles10000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=10, maxPointsPerPartition=3400)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    """
+    
+    """
+    data = sc.textFile("clusters6.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.2,
+                         minPoints=100, maxPointsPerPartition=35000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 5, 3: 6, 4:3, 5:2, 6:6, 0: 0}
+    """
+    
+   
+    
+    """
+    data = sc.textFile("clusters10.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.2,
+                         minPoints=100, maxPointsPerPartition=35000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 9, 3: 2, 4:5, 5:7, 6:6, 7:8, 8:4, 9:3, 0: 0}
+    """
+  
+    """
+    data = sc.textFile("blobs100000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.2,
+                         minPoints=100, maxPointsPerPartition=35000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 3, 2: 1, 3: 2, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("moons100000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=100, maxPointsPerPartition=35000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 2, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("circles100000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=100, maxPointsPerPartition=35000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 2, 2: 1, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("moons500000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=100, maxPointsPerPartition=350000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 1, 2: 2, 0: 0}
+    """
+    
+    """
+    data = sc.textFile("circles500000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.05,
+                         minPoints=100, maxPointsPerPartition=350000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 2, 2: 1, 0: 0}
+    """
+    
+    
+    """
+    data = sc.textFile("blobs500000.csv").map(lambda x: x.strip().split(",")).map(
+        lambda x: tuple([float(i) for i in x]))
+    lines = data.map(lambda l: Vectors.dense(l)).cache()
+    
+    start = time.perf_counter()
+    model = DBSCAN.train(lines, eps=0.1,
+                         minPoints=100, maxPointsPerPartition=175000)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    corresponding_dict = {1: 2, 2: 1, 3: 3, 0: 0}
+    
+    """
+    
+   
     
     # %%
     # changed manually
-    corresponding_dict = {1: 1, 2: 2, 3: 3, 0: 0}
+    
     corresponding_func = lambda x: corresponding_dict[x]
     actual = data.map(lambda l: (Vectors.dense(l), l[2])).collectAsMap()
     
