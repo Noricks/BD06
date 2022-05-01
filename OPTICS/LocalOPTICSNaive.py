@@ -3,9 +3,9 @@ from typing import Iterable
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from OPTICS.LabeledPoint import LabeledPoint, Flag
-from OPTICS.Point import Point
-from OPTICS.Heap import Heap
+from common.LabeledPoint import LabeledPoint, Flag
+from common.Point import Point
+from common.Heap import Heap
 
 """  
     A naive implementation of OPTICS. It has O(n2) complexity
@@ -36,7 +36,6 @@ class LocalOPTICSNaive:
         self.minPoints = minPoints
         self.eps = eps
         self.minDistanceSquared = eps * eps
-        #self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
         
     def fit(self, points: Iterable[Point]):
         outputList = list()

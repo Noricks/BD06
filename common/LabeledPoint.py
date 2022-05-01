@@ -1,6 +1,6 @@
 from pyspark.mllib.linalg import Vector
 from enum import Enum, auto
-from OPTICS.Point import Point
+from common.Point import Point
 
 """
  Companion constants for labeled points

@@ -1,4 +1,4 @@
-from OPTICS.Verbose import Verbose
+from common.Verbose import Verbose
 
 class Heap(Verbose):
 

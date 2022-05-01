@@ -7,7 +7,7 @@ from typing import List, Set, Callable, Tuple
 
 import numpy as np
 
-from OPTICS.Rectangle import Rectangle
+from common.Rectangle import Rectangle
 RectangleWithCount = Tuple[Rectangle, int]
 
 

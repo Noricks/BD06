@@ -1,7 +1,7 @@
 # postponed evaluation (for typing), which will become the default behavior in Python 3.10
 from __future__ import annotations
 from dataclasses import dataclass
-from OPTICS.Point import Point
+from common.Point import Point
 
 
 @dataclass(frozen=True)

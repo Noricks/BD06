@@ -5,14 +5,14 @@ from typing import *
 
 from pyspark.mllib.linalg import Vector
 
-from OPTICS.Graph import Graph
-from OPTICS.LabeledPoint import LabeledPoint, Flag
-from OPTICS.Point import Point
-from OPTICS.Rectangle import Rectangle
-from OPTICS.EvenSplitPartitioner import EvenSplitPartitioner
+from common.Graph import Graph
+from common.LabeledPoint import LabeledPoint, Flag
+from common.Point import Point
+from common.Rectangle import Rectangle
+from common.EvenSplitPartitioner import EvenSplitPartitioner
 from OPTICS.LocalOPTICSNaive import LocalOPTICSNaive
-from OPTICS.TypedRDD import TypedRDD
-from OPTICS.utils import getlogger
+from common.TypedRDD import TypedRDD
+from common.utils import getlogger
 
 # global variables
 Margins = Tuple[Rectangle, Rectangle, Rectangle]

@@ -2,7 +2,7 @@
 # coding: utf-8
 from pyspark import SparkConf, SparkContext
 import time
-from OPTICS.utils import getlogger
+from common.utils import getlogger
 from pyspark.mllib.linalg import Vectors
 
 from OPTICS.OPTICS import OPTICS
@@ -19,6 +19,7 @@ if __name__ == '__main__':
     # %%
     #  Load data
 
+    """
     data = sc.textFile("./dataset/sklearn/blobs10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
@@ -29,9 +30,10 @@ if __name__ == '__main__':
     end = time.perf_counter()
     print('Running time: %s Seconds' % (end - start))
     corresponding_dict = {1: 1, 2: 3, 3: 2, 0: 0}
+    """
 
     """
-    data = sc.textFile("moons10000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/moons10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -44,7 +46,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("circles10000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/circles10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -56,10 +58,10 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("clusters6.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/clusters6.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
+
     start = time.perf_counter()
     model = OPTICS.train(lines, eps=0.2,
                          minPoints=100, maxPointsPerPartition=35000)
@@ -69,7 +71,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("clusters10.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/clusters10.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -82,7 +84,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("blobs100000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/blobs100000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -95,7 +97,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("moons100000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/moons100000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -108,7 +110,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("circles100000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/circles100000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -121,7 +123,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("moons500000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/moons500000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -134,7 +136,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("circles500000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/circles500000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
@@ -147,7 +149,7 @@ if __name__ == '__main__':
     """
 
     """
-    data = sc.textFile("blobs500000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/blobs500000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
