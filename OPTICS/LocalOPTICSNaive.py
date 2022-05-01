@@ -3,8 +3,8 @@ from typing import Iterable
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from OPTICS.LabeledPoint import DBSCANLabeledPoint, Flag
-from OPTICS.Point import DBSCANPoint
+from OPTICS.LabeledPoint import LabeledPoint, Flag
+from OPTICS.Point import Point
 from OPTICS.Heap import Heap
 
 """  
@@ -27,22 +27,18 @@ class Queue:
     def empty(self):
         return len(self.list) == 0
 
-    # def foreach(self, func):
-    #     self.list = list(map(func, self.list))
+def toDBSCANLabeledPoint(point: Point) -> LabeledPoint:
+    return LabeledPoint(point.vector)
 
 
-def toDBSCANLabeledPoint(point: DBSCANPoint) -> DBSCANLabeledPoint:
-    return DBSCANLabeledPoint(point.vector)
-
-
-class LocalDBSCANNaive:
+class LocalOPTICSNaive:
     def __init__(self, eps:float, minPoints: int):
         self.minPoints = minPoints
         self.eps = eps
         self.minDistanceSquared = eps * eps
         #self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
         
-    def fit(self, points: Iterable[DBSCANPoint]):
+    def fit(self, points: Iterable[Point]):
         outputList = list()
         labeledPoints = list(map(toDBSCANLabeledPoint, points))
         tlabeledPoints = list(map(lambda point:[point.x, point.y], points))
@@ -96,7 +92,7 @@ class LocalDBSCANNaive:
         previous.reachDist = finalOutput[0].reachDist
         for i in finalOutput:
             if i.reachDist == -1:
-                i.cluster = DBSCANLabeledPoint.Unknown
+                i.cluster = LabeledPoint.Unknown
             else:
                 if previous.reachDist/i.reachDist < 0.4:
                     cluster = cluster+1

@@ -5,7 +5,7 @@ import time
 from OPTICS.utils import getlogger
 from pyspark.mllib.linalg import Vectors
 
-from OPTICS.DBSCAN import DBSCAN
+from OPTICS.OPTICS import OPTICS
 
 if __name__ == '__main__':
     logger = getlogger(__name__)
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
 
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.5,
+    model = OPTICS.train(lines, eps=0.5,
                          minPoints=10, maxPointsPerPartition=3400)
     end = time.perf_counter()
     print('Running time: %s Seconds' % (end - start))

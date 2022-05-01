@@ -1,60 +1,40 @@
 from __future__ import annotations
-# from typing import ChainMap
-
 from typing import *
 
-# import scala.annotation.tailrec
-
-
-# Top level method for creating a DBSCANGraph
-# object DBSCANGraph {
-#
-#
-#     # Create an empty graph
-#
-#     def apply[T]() -> DBSCANGraph[T] = new DBSCANGraph(Map[T, Set[T]]())
-#
-# }
-
-
-# class DBSCANGraph[T] private (nodes: Map[T, Set[T]]) extends Serializable {
-
-# An immutable unweighted graph with vertexes and edges
 T = TypeVar('T')
 
-
-class DBSCANGraph(Generic[T]):
+class Graph(Generic[T]):
 
     def __init__(self, nodes: ChainMap[T, Set[T]]):
         self.nodes = nodes
 
     # Add the given vertex `v` to the graph
-    def addVertex(self, v: T) -> DBSCANGraph[T]:
+    def addVertex(self, v: T) -> Graph[T]:
 
         ele = self.nodes.get(v)
         if ele is None:
             a = self.nodes.copy()
             a.update({v: set()})
-            return DBSCANGraph(a)
+            return Graph(a)
         else:
             return self
 
     # Insert an edge from_ `from_` to `to`
-    def insertEdge(self, from_: T, to: T) -> DBSCANGraph[T]:
+    def insertEdge(self, from_: T, to: T) -> Graph[T]:
 
         edge = self.nodes.get(from_)
         if edge is None:
             a = self.nodes.copy()
             a.update({from_: {to}})
-            return DBSCANGraph(a)
+            return Graph(a)
         else:
             a = self.nodes.copy()
             edge.update({to})
             a.update({from_: edge})
-            return DBSCANGraph(a)
+            return Graph(a)
 
     # Insert a vertex from_ `one` to `another`, and from_ `another` to `one`
-    def connect(self, one: T, another: T) -> DBSCANGraph[T]:
+    def connect(self, one: T, another: T) -> Graph[T]:
         return self.insertEdge(one, another).insertEdge(another, one)
 
     # Find all vertexes that are reachable from_ `from_`
@@ -80,16 +60,16 @@ class DBSCANGraph(Generic[T]):
 
 if __name__ == '__main__':
     # "should return connected"
-    graph = DBSCANGraph[int](ChainMap({})).connect(1, 3)
+    graph = Graph[int](ChainMap({})).connect(1, 3)
     connected = graph.getConnected(1)
     assert (connected.__eq__({3}))
 
     # "should return none for vertex"
-    graph = DBSCANGraph[int](ChainMap({})).addVertex(5).connect(1, 3)
+    graph = Graph[int](ChainMap({})).addVertex(5).connect(1, 3)
     connected = graph.getConnected(5)
     assert (connected.__eq__({}))
 
     # "should return none for unknown"
-    graph = DBSCANGraph[int](ChainMap({})).addVertex(5).connect(1, 3)
+    graph = Graph[int](ChainMap({})).addVertex(5).connect(1, 3)
     connected = graph.getConnected(6)
     assert (connected.__eq__({}))

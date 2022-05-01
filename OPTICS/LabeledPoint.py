@@ -1,6 +1,6 @@
 from pyspark.mllib.linalg import Vector
 from enum import Enum, auto
-from OPTICS.Point import DBSCANPoint
+from OPTICS.Point import Point
 
 """
  Companion constants for labeled points
@@ -12,15 +12,15 @@ class Flag(Enum):
     Noise = auto()
     NotFlagged = auto()
 
-class DBSCANLabeledPoint(DBSCANPoint):
+class LabeledPoint(Point):
     Unknown = 0
     Undefined = -1.0
     def __init__(self, vector: Vector):
         super().__init__(vector)
         self.flag = Flag.NotFlagged
-        self.cluster = DBSCANLabeledPoint.Unknown
+        self.cluster = LabeledPoint.Unknown
         self.visited = False
-        self.reachDist = DBSCANLabeledPoint.Undefined
+        self.reachDist = LabeledPoint.Undefined
 
     def toString(self) -> str:
         return "$vector,$cluster,$flag"

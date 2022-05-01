@@ -5,30 +5,30 @@ from typing import *
 
 from pyspark.mllib.linalg import Vector
 
-from OPTICS.Graph import DBSCANGraph
-from OPTICS.LabeledPoint import DBSCANLabeledPoint, Flag
-from OPTICS.Point import DBSCANPoint
-from OPTICS.Rectangle import DBSCANRectangle
+from OPTICS.Graph import Graph
+from OPTICS.LabeledPoint import LabeledPoint, Flag
+from OPTICS.Point import Point
+from OPTICS.Rectangle import Rectangle
 from OPTICS.EvenSplitPartitioner import EvenSplitPartitioner
-from OPTICS.LocalDBSCANNaive import LocalDBSCANNaive
+from OPTICS.LocalOPTICSNaive import LocalOPTICSNaive
 from OPTICS.TypedRDD import TypedRDD
 from OPTICS.utils import getlogger
 
 # global variables
-Margins = Tuple[DBSCANRectangle, DBSCANRectangle, DBSCANRectangle]
+Margins = Tuple[Rectangle, Rectangle, Rectangle]
 ClusterId = Tuple[int, int]
 logger = getlogger(__name__)
 
 
 # private
-class DBSCAN:
+class OPTICS:
 
     def __init__(self,
                  eps: float,
                  minPoints: int,
                  maxPointsPerPartition: int,
-                 partitions: List[(int, DBSCANRectangle)],  # @transient
-                 labeledPartitionedPoints: TypedRDD[(int, DBSCANLabeledPoint)]  # private  @transient
+                 partitions: List[(int, Rectangle)],  # @transient
+                 labeledPartitionedPoints: TypedRDD[(int, LabeledPoint)]  # private  @transient
                  ):
         self.eps = eps
         self.minPoints = minPoints
@@ -47,7 +47,7 @@ class DBSCAN:
             any given RDDs should be cached by the user.
         """
 
-    def labeledPoints(self) -> TypedRDD[DBSCANLabeledPoint]:
+    def labeledPoints(self) -> TypedRDD[LabeledPoint]:
         return self.labeledPartitionedPoints.values()
 
     @classmethod
@@ -55,7 +55,7 @@ class DBSCAN:
               data: TypedRDD[Vector],
               eps: float,
               minPoints: int,
-              maxPointsPerPartition: int) -> DBSCAN:
+              maxPointsPerPartition: int) -> OPTICS:
         """
          Train a OPTICS Model using the given set of parameters
          *
@@ -67,10 +67,10 @@ class DBSCAN:
          @param maxPointsPerPartition the largest number of points in a single partition
         """
 
-        return DBSCAN(eps, minPoints, maxPointsPerPartition, None, None).__train(data)
+        return OPTICS(eps, minPoints, maxPointsPerPartition, None, None).__train(data)
 
     # private
-    def __train(self, vectors: TypedRDD[Vector]) -> DBSCAN:
+    def __train(self, vectors: TypedRDD[Vector]) -> OPTICS:
 
         logger.info("OPTICS: training start")
         add = lambda x, y: x + y
@@ -94,11 +94,11 @@ class DBSCAN:
 
         # grow partitions to include eps
         tmp_l = list(map(lambda p: (p[0].shrink(self.eps), p[0], p[0].shrink(-self.eps)), localPartitions))
-        localMargins: List[((DBSCANRectangle, DBSCANRectangle, DBSCANRectangle), int)] = list \
+        localMargins: List[((Rectangle, Rectangle, Rectangle), int)] = list \
             (zip(tmp_l, range(len(tmp_l))))
         margins = vectors.context.broadcast(localMargins)
 
-        duplicated: TypedRDD[(int, DBSCANPoint)]
+        duplicated: TypedRDD[(int, Point)]
 
         # assign each point to its proper partition
         def vec_func(point):
@@ -108,13 +108,13 @@ class DBSCAN:
                     out.append((id_, point))
             return out
 
-        duplicated = vectors.map(DBSCANPoint).flatMap(vec_func)
+        duplicated = vectors.map(Point).flatMap(vec_func)
 
         numOfPartitions = len(localPartitions)
 
         # perform local dbscan
         clustered = duplicated.groupByKey(numOfPartitions).flatMapValues(lambda points:
-                                                                         LocalDBSCANNaive(self.eps, self.minPoints).fit
+                                                                         LocalOPTICSNaive(self.eps, self.minPoints).fit
                                                                          (points)
                                                                          ) \
             .cache()
@@ -123,13 +123,13 @@ class DBSCAN:
         # find all candidate points for merging clusters and group them
         def mergePoints_func(input):
             partition: int
-            point: DBSCANLabeledPoint
+            point: LabeledPoint
             partition, point = input
             return list(map(lambda newPartition: (newPartition[1], (partition, point)),
                             filter(lambda x: x[0][1].contains(point) and not x[0][0].almostContains(point),
                                    margins.value)))
 
-        mergePoints: TypedRDD[(int, Iterable[(int, DBSCANLabeledPoint)])] = clustered.flatMap \
+        mergePoints: TypedRDD[(int, Iterable[(int, LabeledPoint)])] = clustered.flatMap \
             (mergePoints_func).groupByKey()
 
         logger.info("OPTICS: About to find adjacencies")
@@ -138,7 +138,7 @@ class DBSCAN:
         adjacencies: List[((int, int), (int, int))] = mergePoints.flatMapValues(self.findAdjacencies).values().collect()
 
         # generated adjacency graph
-        adjacencyGraph: DBSCANGraph[(int, int)] = DBSCANGraph[ClusterId](ChainMap({}))
+        adjacencyGraph: Graph[(int, int)] = Graph[ClusterId](ChainMap({}))
         for from_, to in adjacencies:
             adjacencyGraph = adjacencyGraph.connect(from_, to)
 
@@ -219,14 +219,14 @@ class DBSCAN:
         labeledOuter = mergePoints.flatMapValues(lambda partition:
                                                  reduce(
                                                      labeledOuter_func, partition,
-                                                     ChainMap[DBSCANPoint, DBSCANLabeledPoint]({}))
+                                                     ChainMap[Point, LabeledPoint]({}))
                                                  .values()
                                                  )
 
         finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins))  # x -> ((_, p, _), index)
         logger.info("OPTICS: Done")
 
-        return DBSCAN(
+        return OPTICS(
             self.eps,
             self.minPoints,
             self.maxPointsPerPartition,
@@ -235,12 +235,12 @@ class DBSCAN:
 
     # Find the appropriate label to the given `vector`
     # This method is not yet implemented
-    def predict(self, vector: Vector) -> DBSCANLabeledPoint:
+    def predict(self, vector: Vector) -> LabeledPoint:
         raise NotImplementedError("")
 
     # private
     def isInnerPoint(self,
-                     entry: (int, DBSCANLabeledPoint),
+                     entry: (int, LabeledPoint),
                      margins: List[(Margins, int)]) -> bool:
         (partition, point) = entry
 
@@ -250,9 +250,9 @@ class DBSCAN:
 
     # private
     def findAdjacencies(self,
-                        partition: Iterable[(int, DBSCANLabeledPoint)]) -> Set[((int, int), (int, int))]:
+                        partition: Iterable[(int, LabeledPoint)]) -> Set[((int, int), (int, int))]:
 
-        _seen: ChainMap[DBSCANPoint, ClusterId] = ChainMap({})
+        _seen: ChainMap[Point, ClusterId] = ChainMap({})
         _adjacencies: Set[(ClusterId, ClusterId)] = set()
 
         for _partition, point in partition:
@@ -270,11 +270,11 @@ class DBSCAN:
         return _adjacencies
 
     # private 
-    def toMinimumBoundingRectangle(self, vector: Vector) -> DBSCANRectangle:
-        point = DBSCANPoint(vector)
+    def toMinimumBoundingRectangle(self, vector: Vector) -> Rectangle:
+        point = Point(vector)
         x = self.corner(point.x)
         y = self.corner(point.y)
-        return DBSCANRectangle(x, y, x + self.minimumRectangleSize, y + self.minimumRectangleSize)
+        return Rectangle(x, y, x + self.minimumRectangleSize, y + self.minimumRectangleSize)
 
     # private
     def corner(self, p: float) -> float:

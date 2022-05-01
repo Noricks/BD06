@@ -1,11 +1,10 @@
+from dataclasses import dataclass
+
 from pyspark.mllib.linalg import Vector
-from dataclasses import dataclass, field
 
-
-# from OPTICS.DBSCANLabeledPoint import DBSCANLabeledPoint
 
 @dataclass(frozen=False)
-class DBSCANPoint:
+class Point:
     vector: Vector
 
     @property
