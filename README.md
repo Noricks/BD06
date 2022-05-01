@@ -19,7 +19,7 @@ Steps:
 2. uncomment the experiments you want to run in `MR-DBSCAN.py` or `MR-OPTICS.py`.
 3. run `/usr/bin/python MR-DBSCAN.py` or `/usr/bin/python MR-OPTICS.py`
 
-This code has been tested on CSLinux Server. Please contact us if code do not work!!!
+This code has been tested on CSLinux Server. As the cluster labels are calibrated manually as other papers, labels may be different when testing on other machines (this basicly won't happen as no randomness is involved in clustering algorithm). But please contact us if code does not work correctly!!!
 
 
 # Code Structure
