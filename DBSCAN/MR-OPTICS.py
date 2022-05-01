@@ -706,11 +706,11 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.1,
+    model = DBSCAN.train(lines, eps=0.3,
                          minPoints=100, maxPointsPerPartition=175000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 2, 2: 1, 3: 3, 0: 0}
+    corresponding_dict = {1: 3, 2: 1, 3: 2, 0: 0}
     
     """
     
