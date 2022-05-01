@@ -30,11 +30,6 @@ class DBSCANRectangle:
             other = i
             return self.x <= other.x and other.x2 <= self.x2 and self.y <= other.y and other.y2 <= self.y2
 
-    # Returns whether point is contained by this box
-    # def contains(self, point: ) -> bool:
-    #     return self.x <= point.x <= self.x2 and self.y <= point.y <= self.y2
-
-
     # Returns a new boself.x from shrinking this box by the given amount
     def shrink(self, amount: float)  -> DBSCANRectangle:
         return DBSCANRectangle(self.x + amount, self.y + amount, self.x2 - amount, self.y2 - amount)

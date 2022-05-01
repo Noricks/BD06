@@ -8,22 +8,6 @@ from typing import List, Set, Callable, Tuple
 import numpy as np
 
 from DBSCAN.DBSCANRectangle import DBSCANRectangle
-
-'''
-    Helper methods for calling the partitioner
-'''
-# object EvenSplitPartitioner {
-#
-#     def self._partition(
-#         toSplit: Set[(DBSCANRectangle, Int)],
-#         maxPointsPerPartition: Long,
-#         self.minimumRectangleSize: Double): List[(DBSCANRectangle, Int)] = {
-#         new EvenSplitPartitioner(maxPointsPerPartition, self.minimumRectangleSize)
-#             .findPartitions(toSplit)
-#     }
-#
-# }
-
 RectangleWithCount = Tuple[DBSCANRectangle, int]
 
 
