@@ -1,4 +1,4 @@
-from DBSCAN.Verbose import Verbose
+from OPTICS.Verbose import Verbose
 
 class Heap(Verbose):
 

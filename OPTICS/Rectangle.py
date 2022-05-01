@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from DBSCAN.DBSCANPoint import DBSCANPoint
+from OPTICS.Point import DBSCANPoint
 
 
 @dataclass(frozen=True)

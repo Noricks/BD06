@@ -7,7 +7,7 @@ from typing import List, Set, Callable, Tuple
 
 import numpy as np
 
-from DBSCAN.DBSCANRectangle import DBSCANRectangle
+from OPTICS.Rectangle import DBSCANRectangle
 RectangleWithCount = Tuple[DBSCANRectangle, int]
 
 

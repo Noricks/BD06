@@ -2,7 +2,7 @@ from pyspark.mllib.linalg import Vector
 from dataclasses import dataclass, field
 
 
-# from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint
+# from OPTICS.DBSCANLabeledPoint import DBSCANLabeledPoint
 
 @dataclass(frozen=False)
 class DBSCANPoint:

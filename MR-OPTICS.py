@@ -2,10 +2,10 @@
 # coding: utf-8
 from pyspark import SparkConf, SparkContext
 import time
-from DBSCAN.utils import getlogger
+from OPTICS.utils import getlogger
 from pyspark.mllib.linalg import Vectors
 
-from DBSCAN.DBSCAN import DBSCAN
+from OPTICS.DBSCAN import DBSCAN
 
 if __name__ == '__main__':
     logger = getlogger(__name__)
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=10, maxPointsPerPartition=3400)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=10, maxPointsPerPartition=3400)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.2,
+    model = OPTICS.train(lines, eps=0.2,
                          minPoints=100, maxPointsPerPartition=35000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.2,
+    model = OPTICS.train(lines, eps=0.2,
                          minPoints=100, maxPointsPerPartition=35000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.2,
+    model = OPTICS.train(lines, eps=0.2,
                          minPoints=100, maxPointsPerPartition=35000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=100, maxPointsPerPartition=35000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=100, maxPointsPerPartition=35000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=100, maxPointsPerPartition=350000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.05,
+    model = OPTICS.train(lines, eps=0.05,
                          minPoints=100, maxPointsPerPartition=350000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     lines = data.map(lambda l: Vectors.dense(l)).cache()
     
     start = time.perf_counter()
-    model = DBSCAN.train(lines, eps=0.3,
+    model = OPTICS.train(lines, eps=0.3,
                          minPoints=100, maxPointsPerPartition=175000)
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))

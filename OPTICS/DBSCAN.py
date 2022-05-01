@@ -5,14 +5,14 @@ from typing import *
 
 from pyspark.mllib.linalg import Vector
 
-from DBSCAN.DBSCANGraph import DBSCANGraph
-from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCAN.DBSCANPoint import DBSCANPoint
-from DBSCAN.DBSCANRectangle import DBSCANRectangle
-from DBSCAN.EvenSplitPartitioner import EvenSplitPartitioner
-from DBSCAN.LocalDBSCANNaive import LocalDBSCANNaive
-from DBSCAN.TypedRDD import TypedRDD
-from DBSCAN.utils import getlogger
+from OPTICS.Graph import DBSCANGraph
+from OPTICS.LabeledPoint import DBSCANLabeledPoint, Flag
+from OPTICS.Point import DBSCANPoint
+from OPTICS.Rectangle import DBSCANRectangle
+from OPTICS.EvenSplitPartitioner import EvenSplitPartitioner
+from OPTICS.LocalDBSCANNaive import LocalDBSCANNaive
+from OPTICS.TypedRDD import TypedRDD
+from OPTICS.utils import getlogger
 
 # global variables
 Margins = Tuple[DBSCANRectangle, DBSCANRectangle, DBSCANRectangle]
@@ -37,9 +37,9 @@ class DBSCAN:
         self.labeledPartitionedPoints = labeledPartitionedPoints
         self.minimumRectangleSize = 2 * eps
         """
-            A parallel implementation of DBSCAN clustering. The implementation will split the data space
+            A parallel implementation of OPTICS clustering. The implementation will split the data space
             into a number of partitions, making a best effort to keep the number of points in each
-            partition under `maxPointsPerPartition`. After partitioning, traditional DBSCAN
+            partition under `maxPointsPerPartition`. After partitioning, traditional OPTICS
             clustering will be run in parallel for each partition and finally the results
             of each partition will be merged to identify global clusters.
 
@@ -57,7 +57,7 @@ class DBSCAN:
               minPoints: int,
               maxPointsPerPartition: int) -> DBSCAN:
         """
-         Train a DBSCAN Model using the given set of parameters
+         Train a OPTICS Model using the given set of parameters
          *
          @param data training points stored as `TypedRDD[Vector]`
          only the first two points of the vector are taken into consideration
@@ -72,7 +72,7 @@ class DBSCAN:
     # private
     def __train(self, vectors: TypedRDD[Vector]) -> DBSCAN:
 
-        logger.info("DBSCAN: training start")
+        logger.info("OPTICS: training start")
         add = lambda x, y: x + y
         # generate the smallest rectangles that split the space
         # and count how many points are contained in each one of them
@@ -88,7 +88,7 @@ class DBSCAN:
         localPartitions = EvenSplitPartitioner.partition(minimumRectanglesWithCount, self.maxPointsPerPartition,
                                                          self.minimumRectangleSize)
 
-        logger.info("DBSCAN: Found partitions: ")
+        logger.info("OPTICS: Found partitions: ")
         for p in localPartitions:
             logger.info(p)
 
@@ -132,7 +132,7 @@ class DBSCAN:
         mergePoints: TypedRDD[(int, Iterable[(int, DBSCANLabeledPoint)])] = clustered.flatMap \
             (mergePoints_func).groupByKey()
 
-        logger.info("DBSCAN: About to find adjacencies")
+        logger.info("OPTICS: About to find adjacencies")
 
         # find all clusters with aliases from_ merging candidates
         adjacencies: List[((int, int), (int, int))] = mergePoints.flatMapValues(self.findAdjacencies).values().collect()
@@ -142,7 +142,7 @@ class DBSCAN:
         for from_, to in adjacencies:
             adjacencyGraph = adjacencyGraph.connect(from_, to)
 
-        logger.info("DBSCAN: About to find all cluster ids")
+        logger.info("OPTICS: About to find all cluster ids")
         # find all cluster ids
         # x -> (_, point) \
         localClusterIds: List[(int, int)] = list(
@@ -164,7 +164,7 @@ class DBSCAN:
             if x is None:
                 nextId = id_ + 1
                 connectedClusters: Set[(int, int)] = adjacencyGraph.getConnected(clusterId).union({clusterId})
-                logger.info("DBSCAN: Connected clusters {}".format(connectedClusters))
+                logger.info("OPTICS: Connected clusters {}".format(connectedClusters))
                 toadd: ChainMap = ChainMap(
                     dict(map(lambda a: (a, nextId), connectedClusters)))
                 tmp = map_.copy()
@@ -177,13 +177,13 @@ class DBSCAN:
         for i in localClusterIds:
             total, clusterIdToGlobalId = clusterIdToGlobalId_func(total, clusterIdToGlobalId, i)
 
-        logger.info("DBSCAN: Global Clusters")
+        logger.info("OPTICS: Global Clusters")
         # clusterIdToGlobalId.foreach(e => # logDebug(e.toString))
-        logger.info("DBSCAN: Total Clusters: {}, Unique: {}".format(len(localClusterIds), total))
+        logger.info("OPTICS: Total Clusters: {}, Unique: {}".format(len(localClusterIds), total))
 
         clusterIds = vectors.context.broadcast(clusterIdToGlobalId)
 
-        logger.info("DBSCAN: About to relabel inner points")
+        logger.info("OPTICS: About to relabel inner points")
 
         # relabel non-duplicated points
         def labeledInner_func(x):
@@ -196,7 +196,7 @@ class DBSCAN:
 
         labeledInner = clustered.filter(lambda x: self.isInnerPoint(x, margins.value)).map(labeledInner_func)
 
-        logger.info("DBSCAN: About to relabel outer points")
+        logger.info("OPTICS: About to relabel outer points")
 
         def labeledOuter_func(all_, x):
             partition, point = x
@@ -224,7 +224,7 @@ class DBSCAN:
                                                  )
 
         finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins))  # x -> ((_, p, _), index)
-        logger.info("DBSCAN: Done")
+        logger.info("OPTICS: Done")
 
         return DBSCAN(
             self.eps,

@@ -3,14 +3,14 @@ from typing import Iterable
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCAN.DBSCANPoint import DBSCANPoint
-from DBSCAN.Heap import Heap
+from OPTICS.LabeledPoint import DBSCANLabeledPoint, Flag
+from OPTICS.Point import DBSCANPoint
+from OPTICS.Heap import Heap
 
 """  
-    A naive implementation of DBSCAN. It has O(n2) complexity
+    A naive implementation of OPTICS. It has O(n2) complexity
     but uses no extra memory. This implementation is not used
-    by the parallel version of DBSCAN.
+    by the parallel version of OPTICS.
    
 """
 
