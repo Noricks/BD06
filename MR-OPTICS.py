@@ -2,10 +2,10 @@
 # coding: utf-8
 from pyspark import SparkConf, SparkContext
 import time
-from utils import getlogger
+from DBSCAN.utils import getlogger
 from pyspark.mllib.linalg import Vectors
 
-from DBSCAN import DBSCAN
+from DBSCAN.DBSCAN import DBSCAN
 
 if __name__ == '__main__':
     logger = getlogger(__name__)
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # %%
     #  Load data
 
-    data = sc.textFile("blobs10000.csv").map(lambda x: x.strip().split(",")).map(
+    data = sc.textFile("./dataset/sklearn/blobs10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
 

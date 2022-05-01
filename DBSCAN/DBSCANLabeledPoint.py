@@ -1,6 +1,6 @@
 from pyspark.mllib.linalg import Vector
 from enum import Enum, auto
-from DBSCANPoint import DBSCANPoint
+from DBSCAN.DBSCANPoint import DBSCANPoint
 
 """
  Companion constants for labeled points

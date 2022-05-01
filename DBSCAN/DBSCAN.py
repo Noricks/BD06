@@ -5,14 +5,14 @@ from typing import *
 
 from pyspark.mllib.linalg import Vector
 
-from DBSCANGraph import DBSCANGraph
-from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCANPoint import DBSCANPoint
-from DBSCANRectangle import DBSCANRectangle
-from EvenSplitPartitioner import EvenSplitPartitioner
-from LocalDBSCANNaive import LocalDBSCANNaive
-from TypedRDD import TypedRDD
-from utils import getlogger
+from DBSCAN.DBSCANGraph import DBSCANGraph
+from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
+from DBSCAN.DBSCANPoint import DBSCANPoint
+from DBSCAN.DBSCANRectangle import DBSCANRectangle
+from DBSCAN.EvenSplitPartitioner import EvenSplitPartitioner
+from DBSCAN.LocalDBSCANNaive import LocalDBSCANNaive
+from DBSCAN.TypedRDD import TypedRDD
+from DBSCAN.utils import getlogger
 
 # global variables
 Margins = Tuple[DBSCANRectangle, DBSCANRectangle, DBSCANRectangle]

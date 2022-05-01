@@ -7,7 +7,7 @@ from typing import List, Set, Callable, Tuple
 
 import numpy as np
 
-from DBSCANRectangle import DBSCANRectangle
+from DBSCAN.DBSCANRectangle import DBSCANRectangle
 
 '''
     Helper methods for calling the partitioner

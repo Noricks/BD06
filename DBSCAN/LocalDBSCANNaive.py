@@ -3,9 +3,9 @@ from typing import Iterable
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCANPoint import DBSCANPoint
-from Heap import Heap
+from DBSCAN.DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
+from DBSCAN.DBSCANPoint import DBSCANPoint
+from DBSCAN.Heap import Heap
 
 """  
     A naive implementation of DBSCAN. It has O(n2) complexity
