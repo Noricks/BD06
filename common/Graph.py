@@ -57,7 +57,7 @@ class Graph(Generic[T]):
             else:
                 return self.getAdjacent(edges.difference(visited).union(tovisit), visited.union({current}),
                                         adjacent.union(edges))
-
+# stand-alone tests
 if __name__ == '__main__':
     # "should return connected"
     graph = Graph[int](ChainMap({})).connect(1, 3)
@@ -73,3 +73,5 @@ if __name__ == '__main__':
     graph = Graph[int](ChainMap({})).addVertex(5).connect(1, 3)
     connected = graph.getConnected(6)
     assert (connected.__eq__({}))
+
+    print("This function is correct")

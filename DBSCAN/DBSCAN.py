@@ -1,20 +1,21 @@
 from __future__ import annotations
-from pyspark.mllib.linalg import Vector, Vectors
-from DBSCANGraph import DBSCANGraph
-from DBSCANPoint import DBSCANPoint
-from LocalDBSCANNaive import LocalDBSCANNaive
-from TypedRDD import TypedRDD
-from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-from DBSCANRectangle import DBSCANRectangle
-from typing import *
-from EvenSplitPartitioner import EvenSplitPartitioner
+
 from functools import reduce
-import logging
-import sys
-from utils import getlogger
+from typing import *
+
+from common.Graph import Graph
+from common.LabeledPoint import LabeledPoint, Flag
+from common.Point import Point
+from common.Rectangle import Rectangle
+from common.EvenSplitPartitioner import EvenSplitPartitioner
+from common.TypedRDD import TypedRDD
+from pyspark.mllib.linalg import Vector, Vectors
+from common.utils import getlogger
+
+from LocalDBSCANNaive import LocalDBSCANNaive
 
 # global variables
-Margins = Tuple[DBSCANRectangle, DBSCANRectangle, DBSCANRectangle]
+Margins = Tuple[Rectangle, Rectangle, Rectangle]
 ClusterId = Tuple[int, int]
 logger = getlogger(__name__)
 
@@ -25,8 +26,8 @@ class DBSCAN:
                  eps: float,
                  minPoints: int,
                  maxPointsPerPartition: int,
-                 partitions: List[(int, DBSCANRectangle)],  # @transient
-                 labeledPartitionedPoints: TypedRDD[(int, DBSCANLabeledPoint)]  # private  @transient
+                 partitions: List[(int, Rectangle)],  # @transient
+                 labeledPartitionedPoints: TypedRDD[(int, LabeledPoint)]  # private  @transient
                  ):
         self.eps = eps
         self.minPoints = minPoints
@@ -45,7 +46,7 @@ class DBSCAN:
             any given RDDs should be cached by the user.
         """
 
-    def labeledPoints(self) -> TypedRDD[DBSCANLabeledPoint]:
+    def labeledPoints(self) -> TypedRDD[LabeledPoint]:
         return self.labeledPartitionedPoints.values()
 
     @classmethod
@@ -92,11 +93,11 @@ class DBSCAN:
 
         # grow partitions to include eps
         tmp_l = list(map(lambda p: (p[0].shrink(self.eps), p[0], p[0].shrink(-self.eps)), localPartitions))
-        localMargins: List[((DBSCANRectangle, DBSCANRectangle, DBSCANRectangle), int)] = \
+        localMargins: List[((Rectangle, Rectangle, Rectangle), int)] = \
             list(zip(tmp_l, range(len(tmp_l))))
         margins = vectors.context.broadcast(localMargins)
 
-        duplicated: TypedRDD[(int, DBSCANPoint)]
+        duplicated: TypedRDD[(int, Point)]
 
         # assign each point to its proper partition
         def vec_func(point):
@@ -106,7 +107,7 @@ class DBSCAN:
                     out.append((id_, point))
             return out
 
-        duplicated = vectors.map(DBSCANPoint).flatMap(vec_func)
+        duplicated = vectors.map(Point).flatMap(vec_func)
 
         numOfPartitions = len(localPartitions)
 
@@ -122,13 +123,13 @@ class DBSCAN:
         # find all candidate points for merging clusters and group them
         def mergePoints_func(input):
             partition: int
-            point: DBSCANLabeledPoint
+            point: LabeledPoint
             partition, point = input
             return list(map(lambda newPartition: (newPartition[1], (partition, point)),
                             filter(lambda x: x[0][1].contains(point) and not x[0][0].almostContains(point),
                                    margins.value)))
 
-        mergePoints: TypedRDD[(int, Iterable[(int, DBSCANLabeledPoint)])] = \
+        mergePoints: TypedRDD[(int, Iterable[(int, LabeledPoint)])] = \
             clustered \
                 .flatMap(mergePoints_func) \
                 .groupByKey()
@@ -143,7 +144,7 @@ class DBSCAN:
                 .collect()
 
         # generated adjacency graph
-        adjacencyGraph: DBSCANGraph[(int, int)] = DBSCANGraph[ClusterId](ChainMap({}))
+        adjacencyGraph: Graph[(int, int)] = Graph[ClusterId](ChainMap({}))
         for from_, to in adjacencies:
             adjacencyGraph = adjacencyGraph.connect(from_, to)
 
@@ -225,7 +226,7 @@ class DBSCAN:
         labeledOuter = \
             mergePoints.flatMapValues(lambda partition:
                                       reduce(
-                                          labeledOuter_func, partition, ChainMap[DBSCANPoint, DBSCANLabeledPoint]({}))
+                                          labeledOuter_func, partition, ChainMap[Point, LabeledPoint]({}))
                                       .values()
                                       )
 
@@ -241,12 +242,12 @@ class DBSCAN:
 
     # Find the appropriate label to the given `vector`
     # This method is not yet implemented
-    def predict(self, vector: Vector) -> DBSCANLabeledPoint:
+    def predict(self, vector: Vector) -> LabeledPoint:
         raise NotImplementedError("")
 
     # private
     def isInnerPoint(self,
-                     entry: (int, DBSCANLabeledPoint),
+                     entry: (int, LabeledPoint),
                      margins: List[(Margins, int)]) -> bool:
         (partition, point) = entry
 
@@ -256,9 +257,9 @@ class DBSCAN:
 
     # private
     def findAdjacencies(self,
-                        partition: Iterable[(int, DBSCANLabeledPoint)]) -> Set[((int, int), (int, int))]:
+                        partition: Iterable[(int, LabeledPoint)]) -> Set[((int, int), (int, int))]:
 
-        _seen: ChainMap[DBSCANPoint, ClusterId] = ChainMap({})
+        _seen: ChainMap[Point, ClusterId] = ChainMap({})
         _adjacencies: Set[(ClusterId, ClusterId)] = set()
 
         for _partition, point in partition:
@@ -276,11 +277,11 @@ class DBSCAN:
         return _adjacencies
 
     # private 
-    def toMinimumBoundingRectangle(self, vector: Vector) -> DBSCANRectangle:
-        point = DBSCANPoint(vector)
+    def toMinimumBoundingRectangle(self, vector: Vector) -> Rectangle:
+        point = Point(vector)
         x = self.corner(point.x)
         y = self.corner(point.y)
-        return DBSCANRectangle(x, y, x + self.minimumRectangleSize, y + self.minimumRectangleSize)
+        return Rectangle(x, y, x + self.minimumRectangleSize, y + self.minimumRectangleSize)
 
     # private
     def corner(self, p: float) -> float:
@@ -294,6 +295,7 @@ class DBSCAN:
             return p
 
 
+# stand-alone test for this file
 if __name__ == '__main__':
     from pyspark import SparkConf, SparkContext
 
@@ -331,3 +333,5 @@ if __name__ == '__main__':
         .map(lambda x: (x[0], corresponding_func(x[1]))) \
         .map(lambda x: x[0] == x[1]) \
         .reduce(lambda x,y: x+y) / data.count()
+
+    print("Accuracy: {}".format(accuracy2))

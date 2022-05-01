@@ -1,31 +1,9 @@
-"""
-    Licensed to the Apache Software Foundation (ASF) under one or more
-    contributor license agreements.  See the NOTICE file distributed with
-    this work for additional information regarding copyright ownership.
-    The ASF licenses this file to You under the Apache License, Version 2.0
-    (the "License"); you may not use this file except in compliance with
-    the License.  You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-"""
-# import scala.collection.mutable.Queue
-
-# from pyspark
-# import pyspark.mllib.clustering.dbscan.Flag
 from typing import Iterable, List
-from pyspark.mllib.linalg import Vectors
-# import queue
 
-from DBSCANPoint import DBSCANPoint
-from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-import operator, functools
-from utils import getlogger
+from common.LabeledPoint import LabeledPoint, Flag
+from common.Point import Point
+from pyspark.mllib.linalg import Vectors
+from common.utils import getlogger
 
 logger = getlogger(__name__)
 """  
@@ -53,8 +31,8 @@ class Queue:
     #     self.list = list(map(func, self.list))
 
 
-def toDBSCANLabeledPoint(point: DBSCANPoint) -> DBSCANLabeledPoint:
-    return DBSCANLabeledPoint(point.vector)
+def toLabeledPoint(point: Point) -> LabeledPoint:
+    return LabeledPoint(point.vector)
 
 
 class LocalDBSCANNaive:
@@ -62,19 +40,19 @@ class LocalDBSCANNaive:
     def __init__(self, eps: float, minPoints: int):
         self.minPoints = minPoints
         self.minDistanceSquared = eps * eps
-        # self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
+        # self.samplePoint = list(LabeledPoint(Vectors.dense([0.0, 0.0])))
 
-    def fit(self, points: Iterable[DBSCANPoint]) -> Iterable[DBSCANLabeledPoint]:
+    def fit(self, points: Iterable[Point]) -> Iterable[LabeledPoint]:
 
         logger.info("LocalDBSCANNaive: About to start fitting")
 
-        labeledPoints = list(map(toDBSCANLabeledPoint, points))
+        labeledPoints = list(map(toLabeledPoint, points))
 
-        # points.map {DBSCANLabeledPoint(_) }.toArray
-        cluster = DBSCANLabeledPoint.Unknown
+        # points.map {LabeledPoint(_) }.toArray
+        cluster = LabeledPoint.Unknown
 
-        # def inside_fuc(cluster, point: DBSCANPoint):
-        def inside_fuc(point: DBSCANPoint):
+        # def inside_fuc(cluster, point: Point):
+        def inside_fuc(point: Point):
             if point.visited is not True:
                 point.visited = True
 
@@ -90,7 +68,7 @@ class LocalDBSCANNaive:
             else:
                 return 0
 
-        # totalClusters = labeledPoints.foldLeft(DBSCANLabeledPoint.Unknown)(inside_fuc)
+        # totalClusters = labeledPoints.foldLeft(LabeledPoint.Unknown)(inside_fuc)
         # totalClusters = functools.reduce(inside_fuc, labeledPoints)
         # print("total points: ", len(labeledPoints))
         # q = len(labeledPoints)
@@ -106,14 +84,14 @@ class LocalDBSCANNaive:
 
         return labeledPoints
 
-    def findNeighbors(self, point: DBSCANPoint, alllist: List[DBSCANLabeledPoint]) -> Iterable[DBSCANLabeledPoint]:
+    def findNeighbors(self, point: Point, alllist: List[LabeledPoint]) -> Iterable[LabeledPoint]:
         return list(filter(lambda other: point.distanceSquared(other) <= self.minDistanceSquared,
                            alllist))  # TODO view.filter
 
     def expandCluster(self,
-                      point: DBSCANLabeledPoint,
-                      neighbors: Iterable[DBSCANLabeledPoint],
-                      alllist: List[DBSCANLabeledPoint],
+                      point: LabeledPoint,
+                      neighbors: Iterable[LabeledPoint],
+                      alllist: List[LabeledPoint],
                       cluster: int):
 
         point.flag = Flag.Core
@@ -138,7 +116,7 @@ class LocalDBSCANNaive:
                 else:
                     neighbor.flag = Flag.Border
 
-                if neighbor.cluster == DBSCANLabeledPoint.Unknown:
+                if neighbor.cluster == LabeledPoint.Unknown:
                     neighbor.cluster = cluster
                     neighbor.flag = Flag.Border
 
@@ -153,14 +131,12 @@ class LocalDBSCANNaive:
 
 # %%
 
+# stand-alone test for this file
 if __name__ == '__main__':
     from pyspark import SparkConf, SparkContext
     import numpy as np
 
     # %%
-    # maxCluster = 20
-    # maxIteration = 100
-
     conf = SparkConf().setMaster("local[*]").setAppName("My App")
     sc = SparkContext(conf=conf)
     a = sc.parallelize([1, 2, 3])
@@ -168,21 +144,16 @@ if __name__ == '__main__':
 
     # %%
     #  Load data
-    # data = sc.textFile("./mnist_test.csv")
     data = sc.textFile("../dataset/labeled_data.csv").map(lambda x: x.strip().split(",")[:-1]).map(
         lambda x: tuple([float(i) for i in x]))
     data_label = sc.textFile("../dataset/labeled_data.csv").map(lambda x: int(x.strip().split(",")[-1])).collect()
-    lines = data.map(lambda l: DBSCANPoint(Vectors.dense(l))).cache()
+    lines = data.map(lambda l: Point(Vectors.dense(l))).cache()
     lines = lines.collect()
-    # lines = data.map(lambda l: Vectors.dense(list(map(float, l.split(","))))).cache()
     model = LocalDBSCANNaive(
         # lines,
         eps=0.3,
         minPoints=10)
-    # maxPointsPerPartition=100)
     predictions = model.fit(lines)
-    # for i in labeled:
-        # print(i.cluster)
     # %%
     def map_index(x):
         label = x.cluster
@@ -197,3 +168,4 @@ if __name__ == '__main__':
 
     # %%
     accuracy  = (np.array(pre_label) == np.array(data_label)).sum() / len(data_label)
+    print("Accuracy: {}".format(accuracy))
