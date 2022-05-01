@@ -52,8 +52,8 @@ BD06
 │  circles10000.csv
 │  circles100000.csv
 │  circles500000.csv
-│  clusters10.csv
-│  clusters6.csv
+│  clusters10.csv # 10-cluster Blobs datasets with 100000 points
+│  clusters6.csv # 6-cluster Blobs datasets with 100000 points
 │  moons10000.csv
 │  moons100000.csv
 │  moons500000.csv
