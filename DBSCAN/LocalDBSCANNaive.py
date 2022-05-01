@@ -1,30 +1,11 @@
-"""
-    Licensed to the Apache Software Foundation (ASF) under one or more
-    contributor license agreements.  See the NOTICE file distributed with
-    this work for additional information regarding copyright ownership.
-    The ASF licenses this file to You under the Apache License, Version 2.0
-    (the "License"); you may not use this file except in compliance with
-    the License.  You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-"""
-# import scala.collection.mutable.Queue
+from typing import Iterable
 
-# from pyspark
-# import pyspark.mllib.clustering.dbscan.Flag
-from typing import Iterable, List
-from pyspark.mllib.linalg import Vectors
-# import queue
+import numpy as np
+from sklearn.neighbors import KDTree
 
-from DBSCANPoint import DBSCANPoint
 from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
-import operator, functools
+from DBSCANPoint import DBSCANPoint
+from Heap import Heap
 
 """  
     A naive implementation of DBSCAN. It has O(n2) complexity
@@ -32,7 +13,6 @@ import operator, functools
     by the parallel version of DBSCAN.
    
 """
-
 
 class Queue:
     def __init__(self):
@@ -58,111 +38,97 @@ def toDBSCANLabeledPoint(point: DBSCANPoint) -> DBSCANLabeledPoint:
 class LocalDBSCANNaive:
     def __init__(self, eps:float, minPoints: int):
         self.minPoints = minPoints
+        self.eps = eps
         self.minDistanceSquared = eps * eps
         #self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
         
-    def fit(self, points: Iterable[DBSCANPoint]) -> Iterable[DBSCANLabeledPoint]:
+    def fit(self, points: Iterable[DBSCANPoint]):
         outputList = list()
         labeledPoints = list(map(toDBSCANLabeledPoint, points))
-        for labeledPoint in labeledPoints:
-            if (not labeledPoint.visited):
-                neighbors = self.findNeighbors(labeledPoint, labeledPoints)
-                labeledPoint.visited = True
-                outputList.append(labeledPoint)
-                if(self.calcCoreDistance(labeledPoint, neighbors, self.minPoints) != -1):
-                    orderedList = list()
-                    self.update(neighbors, labeledPoint, orderedList)
-                    while(len(orderedList)!=0):
-                        orderedPoint = orderedList[0]
-                        del orderedList[0]
-                        orderedPointNeighbors = self.findNeighbors(orderedPoint, labeledPoints)
-                        orderedPoint.visited = True
-                        outputList.append(orderedPoint)
-                        if (self.calcCoreDistance(orderedPoint, neighbors, self.minPoints) != -1):
-                            self.update(orderedPointNeighbors, orderedPoint, orderedList)
-        return outputList
-                           
-    def update(self, neighbors: Iterable[DBSCANLabeledPoint], point: DBSCANLabeledPoint, orderedList: List[DBSCANLabeledPoint]):
-        coredist = self.calcCoreDistance(point, neighbors, self.minPoints)
-        for neighbor in neighbors:
-            if (not neighbor.visited):
-                reachDist = max(coredist, point.distanceSquared(neighbor))
-                if neighbor.reachDist == -1:
-                    neighbor.reachDist = reachDist
-                    neighbor.predecessor = point
-                    orderedList.append(neighbor)
-                    orderedList.sort(key = lambda point: point.reachDist)
+        tlabeledPoints = list(map(lambda point:[point.x, point.y], points))
+        arrayPoints = np.array(tlabeledPoints)
+        tree = KDTree(arrayPoints, leaf_size=2, metric = 'euclidean')
+        for i in range(arrayPoints.shape[0]):
+            
+            #print("current point index:", labeledPoints[i])
+            if (not labeledPoints[i].visited):
+                
+                labeledPoints[i].visited = True
+                neighbors, neDist = tree.query_radius(arrayPoints[i:i+1], r=self.eps, return_distance = True)
+                neighbors = neighbors[0]
+                neDist = neDist[0]
+                
+                if (len(outputList) != 0 and len(neighbors)>=self.minPoints):
+                    x1 = labeledPoints[i].x
+                    y1 = labeledPoints[i].x
+                    prevIndex = outputList[-1]
+                    x2 = labeledPoints[prevIndex].x
+                    y2 = labeledPoints[prevIndex].y
+                    labeledPoints[i].reachDist = ((x1-x2)**2+(y1-y2)**2)**0.5
+                outputList.append(i)
+                coreDist = self.coreDistance(i, tree, self.minPoints, self.eps, arrayPoints)
+                if(coreDist < np.inf):
+                    labeledPoints[i].flag = Flag.Core
+                    orderedList = Heap(verbose = False)
+                    self.update(neighbors, i, orderedList, coreDist, neDist, labeledPoints)
+                    while(not orderedList.is_empty):
+                        
+                        reachDist, index = orderedList.pop()
+                        #print(reachDist, index)
+                        neighbors2, neDist2 = tree.query_radius(arrayPoints[index:index+1], r=self.eps, return_distance= True)
+                        neighbors2 = neighbors2[0]
+                        neDist2 = neDist2[0]
+                        labeledPoints[index].visited = True
+                        outputList.append(index)
+                        coreDist2 = self.coreDistance(index, tree, self.minPoints, self.eps, arrayPoints)
+                        if (coreDist2 < np.inf):
+                            self.update(neighbors2, index, orderedList, coreDist2, neDist2, labeledPoints)
+                        else:
+                            labeledPoints[i].flag = Flag.Border
                 else:
-                    if reachDist < neighbor.reachDist:
-                        neighbor.reachDist = reachDist
-                        temp = neighbor.predecessor
-                        neighbor.predecessor = point
-                        orderedList.sort(key = lambda point: point.reachDist)
+                    labeledPoints[i].reachDist = -1
+                    labeledPoints[i].flag = Flag.Noise
+        finalOutput = list(map(lambda index: labeledPoints[index], outputList))
+        previous = finalOutput[0]
+        finalOutput.remove(finalOutput[0])
+        cluster = 1
+        previous.cluster = 1
+        previous.reachDist = finalOutput[0].reachDist
+        for i in finalOutput:
+            if i.reachDist == -1:
+                i.cluster = DBSCANLabeledPoint.Unknown
+            else:
+                if previous.reachDist/i.reachDist < 0.4:
+                    cluster = cluster+1
+                    i.cluster = cluster
+                else:
+                    i.cluster = cluster
+            previous = i
+        return labeledPoints
     
-    def findNeighbors(self, point: DBSCANPoint, alllist: List[DBSCANLabeledPoint]) -> Iterable[DBSCANLabeledPoint]:
-        return list(filter(lambda other: point.distanceSquared(other) <= self.minDistanceSquared,
-                           alllist))
+    def update(self, neighbors, index, orderedList, coreDist, dists, labeledPoints):
+        #print(neighbors)
+        for j in range(len(neighbors)):
+            i = neighbors[j]
+            if(not labeledPoints[i].visited):
+                reachDist = max(coreDist, dists[j])
+                if labeledPoints[i].reachDist == -1:
+                    labeledPoints[i].reachDist = reachDist
+                    orderedList.push([reachDist, i])
+                else:
+                    if reachDist < labeledPoints[i].reachDist:
+                        labeledPoints[i].reachDist = reachDist
+                        orderedList.push([reachDist, i])
     
-
-    @staticmethod
-    def calcCoreDistance(point: DBSCANPoint, neighbors: Iterable[DBSCANLabeledPoint], minPoints: int) -> float:
-        if len(list(neighbors)) < minPoints:
-            return -1
+    def coreDistance(self, index, tree, minPoints, eps, arrayPoints) -> float:
+        dists = tree.query(arrayPoints[index:index+1], k=minPoints)[0][0]
+        if dists[-1] > eps:
+            
+            return np.inf
+        elif len(dists) < minPoints:
+            return np.inf
         else:
-            distances = list(map((lambda neighbor: point.distanceSquared(neighbor)), neighbors))
-            coreDistances = list()
-            for distance in distances:
-                if(len(coreDistances) < minPoints):
-                    coreDistances.append(distance)
-                    coreDistances.sort()
-                else: 
-                    if (coreDistances[minPoints-1] > distance):
-                        coreDistances[minPoints-1] = distance
-                        coreDistances.sort()
-            return coreDistances[minPoints-1]
-
-# %%
-
-if __name__ == '__main__':
-    from pyspark import SparkConf, SparkContext
-    import numpy as np
-    import time
-    # %%
-    # maxCluster = 20
-    # maxIteration = 100
-
-    conf = SparkConf().setMaster("local[*]").setAppName("My App")
-    sc = SparkContext(conf=conf)
-    a = sc.parallelize([1, 2, 3])
-    a.count()
-
-    # %%
-    # a = np.random.random((100, 2)).tolist()
-    # data = sc.parallelize(a)
-    # %%
-    #  Load data
-    # data = sc.textFile("./mnist_test.csv")
-    data = sc.textFile("labeled_data.csv").map(lambda x: x.strip().split(",")[:-1]).map(
-        lambda x: tuple([float(i) for i in x]))
-    data_label = sc.textFile("labeled_data.csv").map(lambda x: int(x.strip().split(",")[-1])).collect()
-    lines = data.map(lambda l: DBSCANPoint(Vectors.dense(l))).cache()
-    lines = lines.collect()
-    # lines = data.map(lambda l: Vectors.dense(list(map(float, l.split(","))))).cache()
-    model = LocalDBSCANNaive(
-        # lines,
-        eps=0.3,
-        minPoints=10)
-    # maxPointsPerPartition=100)
-    start = time.perf_counter()
+            return dists[minPoints-1]
+            
     
-    labeled = model.fit(lines, data_label)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    
-    # for i in labeled:
-        # print(i.cluster)
-    c = list(map(lambda x: x.cluster, labeled))
-    sc.stop()
-    for i in labeled:
-        print(i)
-        print(i.reachDist)
+
