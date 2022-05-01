@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 import time
 from pyspark import SparkConf, SparkContext
 from pyspark.mllib.linalg import Vectors
@@ -17,7 +15,7 @@ if __name__ == '__main__':
     logger.info("pyspark script logger initialized")
     # %%
     # Load data
-    # You should uncomment a case to perform a test
+    # You should uncomment a case as follows to perform a test
 
     # """
     data = sc.textFile("./dataset/sklearn/blobs10000.csv").map(lambda x: x.strip().split(",")).map(

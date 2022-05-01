@@ -3,16 +3,16 @@ from __future__ import annotations
 from functools import reduce
 from typing import *
 
+from pyspark.mllib.linalg import Vector
+
+from DBSCAN.LocalDBSCANNaive import LocalDBSCANNaive
+from common.EvenSplitPartitioner import EvenSplitPartitioner
 from common.Graph import Graph
 from common.LabeledPoint import LabeledPoint, Flag
 from common.Point import Point
 from common.Rectangle import Rectangle
-from common.EvenSplitPartitioner import EvenSplitPartitioner
 from common.TypedRDD import TypedRDD
-from pyspark.mllib.linalg import Vector, Vectors
 from common.utils import getlogger
-
-from LocalDBSCANNaive import LocalDBSCANNaive
 
 # global variables
 Margins = Tuple[Rectangle, Rectangle, Rectangle]
@@ -293,45 +293,3 @@ class DBSCAN:
             return p - self.minimumRectangleSize
         else:
             return p
-
-
-# stand-alone test for this file
-if __name__ == '__main__':
-    from pyspark import SparkConf, SparkContext
-
-    # %%
-    conf = SparkConf().setMaster("local[*]").setAppName("My App")
-    sc = SparkContext(conf=conf)
-    a = sc.parallelize([1, 2, 3])
-    a.count()
-    logger.warning("pyspark script logger initialized")
-    # %%
-    #  Load data
-    # data = sc.textFile("./mnist_test.csv")
-    data = sc.textFile("../dataset/labeled_data.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    model = DBSCAN.train(lines, eps=0.3,
-                         minPoints=10, maxPointsPerPartition=250)
-    # %%
-    corresponding_dict = {3: 1, 2: 2, 1: 3, 0: 0}
-    corresponding_func = lambda x: corresponding_dict[x]
-
-    clustered = model.labeledPoints() \
-        .map(lambda p: (p.vector, corresponding_func(p.cluster))) \
-        .collectAsMap()
-        # .collect()
-
-    actual = data.map(lambda l: (Vectors.dense(l), l[2])).collectAsMap()
-
-    # accuracy 1: check two maps (dict) are the same
-    assert actual == clustered
-
-    # accuracy 2
-    accuracy2 = model.labeledPoints() \
-        .map(lambda p: (int(p.vector[2]), int(p.cluster))) \
-        .map(lambda x: (x[0], corresponding_func(x[1]))) \
-        .map(lambda x: x[0] == x[1]) \
-        .reduce(lambda x,y: x+y) / data.count()
-
-    print("Accuracy: {}".format(accuracy2))

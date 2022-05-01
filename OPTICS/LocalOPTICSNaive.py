@@ -11,7 +11,6 @@ from common.Heap import Heap
     A naive implementation of OPTICS. It has O(n2) complexity
     but uses no extra memory. This implementation is not used
     by the parallel version of OPTICS.
-   
 """
 
 class Queue:
