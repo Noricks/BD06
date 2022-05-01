@@ -49,7 +49,8 @@ class DBSCANGraph(Generic[T]):
             return DBSCANGraph(a)
         else:
             a = self.nodes.copy()
-            a.update({from_: edge.update(to)})
+            edge.update({to})
+            a.update({from_: edge})
             return DBSCANGraph(a)
 
     # Insert a vertex from_ `one` to `another`, and from_ `another` to `one`
