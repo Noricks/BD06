@@ -14,15 +14,22 @@ class Flag(Enum):
 
 class DBSCANLabeledPoint(DBSCANPoint):
     Unknown = 0
+    Undefined = -1.0
+    origin_label = 0
+    isInPQ = False
+    predecessor = None
+    successors = list()
+    processed = False
+    affected = False
     def __init__(self, vector: Vector):
         super().__init__(vector)
         self.flag = Flag.NotFlagged
         self.cluster = DBSCANLabeledPoint.Unknown
         self.visited = False
-
+        self.reachDist = DBSCANLabeledPoint.Undefined
+    
     # def this(self, point: DBSCANPoint):
     #   return self.this(point.vector)
-
     def toString(self) -> str:
         return "$vector,$cluster,$flag"
 

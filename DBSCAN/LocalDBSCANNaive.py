@@ -25,9 +25,7 @@ from pyspark.mllib.linalg import Vectors
 from DBSCANPoint import DBSCANPoint
 from DBSCANLabeledPoint import DBSCANLabeledPoint, Flag
 import operator, functools
-from utils import getlogger
 
-logger = getlogger(__name__)
 """  
     A naive implementation of DBSCAN. It has O(n2) complexity
     but uses no extra memory. This implementation is not used
@@ -58,105 +56,77 @@ def toDBSCANLabeledPoint(point: DBSCANPoint) -> DBSCANLabeledPoint:
 
 
 class LocalDBSCANNaive:
-
-    def __init__(self, eps: float, minPoints: int):
+    def __init__(self, eps:float, minPoints: int):
         self.minPoints = minPoints
         self.minDistanceSquared = eps * eps
-        # self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
-
+        #self.samplePoint = list(DBSCANLabeledPoint(Vectors.dense([0.0, 0.0])))
+        
     def fit(self, points: Iterable[DBSCANPoint]) -> Iterable[DBSCANLabeledPoint]:
-
-        logger.info("LocalDBSCANNaive: About to start fitting")
-
+        outputList = list()
         labeledPoints = list(map(toDBSCANLabeledPoint, points))
-
-        # points.map {DBSCANLabeledPoint(_) }.toArray
-        cluster = DBSCANLabeledPoint.Unknown
-
-        # def inside_fuc(cluster, point: DBSCANPoint):
-        def inside_fuc(point: DBSCANPoint):
-            if point.visited is not True:
-                point.visited = True
-
-                neighbors = self.findNeighbors(point, labeledPoints)
-
-                if len(neighbors) < self.minPoints:
-                    point.flag = Flag.Noise
-                    return 0
+        for labeledPoint in labeledPoints:
+            if (not labeledPoint.visited):
+                neighbors = self.findNeighbors(labeledPoint, labeledPoints)
+                labeledPoint.visited = True
+                outputList.append(labeledPoint)
+                if(self.calcCoreDistance(labeledPoint, neighbors, self.minPoints) != -1):
+                    orderedList = list()
+                    self.update(neighbors, labeledPoint, orderedList)
+                    while(len(orderedList)!=0):
+                        orderedPoint = orderedList[0]
+                        del orderedList[0]
+                        orderedPointNeighbors = self.findNeighbors(orderedPoint, labeledPoints)
+                        orderedPoint.visited = True
+                        outputList.append(orderedPoint)
+                        if (self.calcCoreDistance(orderedPoint, neighbors, self.minPoints) != -1):
+                            self.update(orderedPointNeighbors, orderedPoint, orderedList)
+        return outputList
+                           
+    def update(self, neighbors: Iterable[DBSCANLabeledPoint], point: DBSCANLabeledPoint, orderedList: List[DBSCANLabeledPoint]):
+        coredist = self.calcCoreDistance(point, neighbors, self.minPoints)
+        for neighbor in neighbors:
+            if (not neighbor.visited):
+                reachDist = max(coredist, point.distanceSquared(neighbor))
+                if neighbor.reachDist == -1:
+                    neighbor.reachDist = reachDist
+                    neighbor.predecessor = point
+                    orderedList.append(neighbor)
+                    orderedList.sort(key = lambda point: point.reachDist)
                 else:
-                    self.expandCluster(point, neighbors, labeledPoints, cluster + 1)
-                return 1
-
-            else:
-                return 0
-
-        # totalClusters = labeledPoints.foldLeft(DBSCANLabeledPoint.Unknown)(inside_fuc)
-        # totalClusters = functools.reduce(inside_fuc, labeledPoints)
-        # print("total points: ", len(labeledPoints))
-        # q = len(labeledPoints)
-        index = 0
-        for i in labeledPoints:
-            cluster = cluster + inside_fuc(i)
-            index = index + 1
-            # print("total: {}%".format(index/q))
-        # totalClusters = cluster
-
-        # print("totalClusters clusters", str(totalClusters))
-        # logger.info("LocalDBSCANNaive: {} clusters".format(totalClusters))
-
-        return labeledPoints
-
+                    if reachDist < neighbor.reachDist:
+                        neighbor.reachDist = reachDist
+                        temp = neighbor.predecessor
+                        neighbor.predecessor = point
+                        orderedList.sort(key = lambda point: point.reachDist)
+    
     def findNeighbors(self, point: DBSCANPoint, alllist: List[DBSCANLabeledPoint]) -> Iterable[DBSCANLabeledPoint]:
         return list(filter(lambda other: point.distanceSquared(other) <= self.minDistanceSquared,
-                           alllist))  # TODO view.filter
+                           alllist))
+    
 
-    def expandCluster(self,
-                      point: DBSCANLabeledPoint,
-                      neighbors: Iterable[DBSCANLabeledPoint],
-                      alllist: List[DBSCANLabeledPoint],
-                      cluster: int):
-
-        point.flag = Flag.Core
-        point.cluster = cluster
-
-        allNeighbors = Queue()
-        # for i in neighbors:
-        allNeighbors.enqueue(neighbors)
-
-        def inside_func(neighbor):
-            if neighbor.visited is False:
-                neighbor.visited = True
-                neighbor.cluster = cluster
-
-                neighborNeighbors = self.findNeighbors(neighbor, alllist)
-
-                if len(neighborNeighbors) >= self.minPoints:
-                    neighbor.flag = Flag.Core
-                    # for k in neighborNeighbors:
-                    #     allNeighbors.enqueue(k)
-                    allNeighbors.enqueue(neighborNeighbors)
-                else:
-                    neighbor.flag = Flag.Border
-
-                if neighbor.cluster == DBSCANLabeledPoint.Unknown:
-                    neighbor.cluster = cluster
-                    neighbor.flag = Flag.Border
-
-        while allNeighbors.empty() is False:
-            # print(len(allNeighbors.list))
-            k = allNeighbors.dequeue()
-            for i in k:
-                # print(len(allNeighbors.list))
-                inside_func(i)
-            # allNeighbors.foreach(inside_func)
-
+    @staticmethod
+    def calcCoreDistance(point: DBSCANPoint, neighbors: Iterable[DBSCANLabeledPoint], minPoints: int) -> float:
+        if len(list(neighbors)) < minPoints:
+            return -1
+        else:
+            distances = list(map((lambda neighbor: point.distanceSquared(neighbor)), neighbors))
+            coreDistances = list()
+            for distance in distances:
+                if(len(coreDistances) < minPoints):
+                    coreDistances.append(distance)
+                    coreDistances.sort()
+                else: 
+                    if (coreDistances[minPoints-1] > distance):
+                        coreDistances[minPoints-1] = distance
+                        coreDistances.sort()
+            return coreDistances[minPoints-1]
 
 # %%
 
 if __name__ == '__main__':
     from pyspark import SparkConf, SparkContext
     import numpy as np
-
+    import time
     # %%
     # maxCluster = 20
     # maxIteration = 100
@@ -167,11 +137,14 @@ if __name__ == '__main__':
     a.count()
 
     # %%
+    # a = np.random.random((100, 2)).tolist()
+    # data = sc.parallelize(a)
+    # %%
     #  Load data
     # data = sc.textFile("./mnist_test.csv")
-    data = sc.textFile("../dataset/labeled_data.csv").map(lambda x: x.strip().split(",")[:-1]).map(
+    data = sc.textFile("labeled_data.csv").map(lambda x: x.strip().split(",")[:-1]).map(
         lambda x: tuple([float(i) for i in x]))
-    data_label = sc.textFile("../dataset/labeled_data.csv").map(lambda x: int(x.strip().split(",")[-1])).collect()
+    data_label = sc.textFile("labeled_data.csv").map(lambda x: int(x.strip().split(",")[-1])).collect()
     lines = data.map(lambda l: DBSCANPoint(Vectors.dense(l))).cache()
     lines = lines.collect()
     # lines = data.map(lambda l: Vectors.dense(list(map(float, l.split(","))))).cache()
@@ -180,20 +153,16 @@ if __name__ == '__main__':
         eps=0.3,
         minPoints=10)
     # maxPointsPerPartition=100)
-    predictions = model.fit(lines)
+    start = time.perf_counter()
+    
+    labeled = model.fit(lines, data_label)
+    end = time.perf_counter()
+    print('Running time: %s Seconds'%(end-start))
+    
     # for i in labeled:
         # print(i.cluster)
-    # %%
-    def map_index(x):
-        label = x.cluster
-        if label == 3:
-            return 2
-        elif label == 2:
-            return 3
-        else:
-            return label
-
-    pre_label = list(map(map_index, predictions))
-
-    # %%
-    accuracy  = (np.array(pre_label) == np.array(data_label)).sum() / len(data_label)
+    c = list(map(lambda x: x.cluster, labeled))
+    sc.stop()
+    for i in labeled:
+        print(i)
+        print(i.reachDist)
