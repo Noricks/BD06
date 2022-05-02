@@ -1,5 +1,6 @@
 from common.Verbose import Verbose
 
+
 class Heap(Verbose):
 
     def __init__(self, verbose=True):

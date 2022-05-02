@@ -15,8 +15,7 @@ class Rectangle:
     x: float
     y: float
     x2: float
-    y2: float    
-                
+    y2: float
 
     def contains(self, i: Point | Rectangle) -> bool:
         if isinstance(i, Point):
@@ -29,13 +28,13 @@ class Rectangle:
             return self.x <= other.x and other.x2 <= self.x2 and self.y <= other.y and other.y2 <= self.y2
 
     # Returns a new boself.x from shrinking this box by the given amount
-    def shrink(self, amount: float)  -> Rectangle:
+    def shrink(self, amount: float) -> Rectangle:
         return Rectangle(self.x + amount, self.y + amount, self.x2 - amount, self.y2 - amount)
-
 
     """
         Returns a whether the rectangle contains the point, and the point
         is not in the rectangle's border
     """
+
     def almostContains(self, point: Point) -> bool:
         return self.x < point.x < self.x2 and self.y < point.y < self.y2

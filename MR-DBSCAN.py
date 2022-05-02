@@ -22,12 +22,12 @@ if __name__ == '__main__':
     data = sc.textFile("./dataset/sklearn/moons10000.csv").map(lambda x: x.strip().split(",")).map(
         lambda x: tuple([float(i) for i in x]))
     lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
+
     start = time.perf_counter()
     model = DBSCAN.train(lines, eps=0.05,
                          minPoints=10, maxPointsPerPartition=3400)
     end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
+    print('Running time: %s Seconds' % (end - start))
     corresponding_dict = {1: 1, 2: 2, 0: 0}
     # """
 
@@ -43,7 +43,6 @@ if __name__ == '__main__':
     print('Running time: %s Seconds'%(end-start))
     corresponding_dict = {1: 1, 2: 2, 0: 0}
     """
-
 
     # %%
     # calculate the Accuracy

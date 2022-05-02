@@ -22,6 +22,16 @@ logger = getlogger(__name__)
 
 # private
 class OPTICS:
+    """
+        A parallel implementation of OPTICS clustering. The implementation will split the data space
+        into a number of partitions, making a best effort to keep the number of points in each
+        partition under `maxPointsPerPartition`. After partitioning, traditional OPTICS
+        clustering will be run in parallel for each partition and finally the results
+        of each partition will be merged to identify global clusters.
+
+        This is an iterative algorithm that will make multiple passes over the data,
+        any given RDDs should be cached by the user.
+    """
 
     def __init__(self,
                  eps: float,
@@ -36,16 +46,6 @@ class OPTICS:
         self.partitions = partitions
         self.labeledPartitionedPoints = labeledPartitionedPoints
         self.minimumRectangleSize = 2 * eps
-        """
-            A parallel implementation of OPTICS clustering. The implementation will split the data space
-            into a number of partitions, making a best effort to keep the number of points in each
-            partition under `maxPointsPerPartition`. After partitioning, traditional OPTICS
-            clustering will be run in parallel for each partition and finally the results
-            of each partition will be merged to identify global clusters.
-
-            This is an iterative algorithm that will make multiple passes over the data,
-            any given RDDs should be cached by the user.
-        """
 
     def labeledPoints(self) -> TypedRDD[LabeledPoint]:
         return self.labeledPartitionedPoints.values()
@@ -154,7 +154,6 @@ class OPTICS:
         )
 
         # assign a global Id to all clusters, where connected clusters get the same id
-
         def clusterIdToGlobalId_func(
                 id_: int,
                 map_: ChainMap[(int, int), int],
@@ -178,11 +177,8 @@ class OPTICS:
             total, clusterIdToGlobalId = clusterIdToGlobalId_func(total, clusterIdToGlobalId, i)
 
         logger.info("OPTICS: Global Clusters")
-        # clusterIdToGlobalId.foreach(e => # logDebug(e.toString))
         logger.info("OPTICS: Total Clusters: {}, Unique: {}".format(len(localClusterIds), total))
-
         clusterIds = vectors.context.broadcast(clusterIdToGlobalId)
-
         logger.info("OPTICS: About to relabel inner points")
 
         # relabel non-duplicated points

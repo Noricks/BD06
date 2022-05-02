@@ -3,5 +3,6 @@ from typing import *
 
 T = TypeVar('T')
 
-class TypedRDD(Generic[T] ,RDD):
+
+class TypedRDD(Generic[T], RDD):
     pass

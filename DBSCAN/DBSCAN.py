@@ -19,6 +19,7 @@ Margins = Tuple[Rectangle, Rectangle, Rectangle]
 ClusterId = Tuple[int, int]
 logger = getlogger(__name__)
 
+
 # private
 class DBSCAN:
 
@@ -190,6 +191,7 @@ class DBSCAN:
         clusterIds = vectors.context.broadcast(clusterIdToGlobalId)
 
         logger.info("DBSCAN: About to relabel inner points")
+
         # relabel non-duplicated points
         def labeledInner_func(x):
             partition = x[0]
@@ -205,6 +207,7 @@ class DBSCAN:
                 .map(labeledInner_func)
 
         logger.info("DBSCAN: About to relabel outer points")
+
         def labeledOuter_func(all_, x):
             partition, point = x
             if point.flag != Flag.Noise:
@@ -230,7 +233,7 @@ class DBSCAN:
                                       .values()
                                       )
 
-        finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins)) # x -> ((_, p, _), index)
+        finalPartitions = list(map(lambda x: (x[1], x[0][1]), localMargins))  # x -> ((_, p, _), index)
         logger.info("DBSCAN: Done")
 
         return DBSCAN(

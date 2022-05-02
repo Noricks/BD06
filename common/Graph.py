@@ -3,6 +3,7 @@ from typing import *
 
 T = TypeVar('T')
 
+
 class Graph(Generic[T]):
 
     def __init__(self, nodes: ChainMap[T, Set[T]]):
@@ -57,6 +58,8 @@ class Graph(Generic[T]):
             else:
                 return self.getAdjacent(edges.difference(visited).union(tovisit), visited.union({current}),
                                         adjacent.union(edges))
+
+
 # stand-alone tests
 if __name__ == '__main__':
     # "should return connected"

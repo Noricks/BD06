@@ -7,12 +7,6 @@ from common.LabeledPoint import LabeledPoint, Flag
 from common.Point import Point
 from common.Heap import Heap
 
-"""  
-    A naive implementation of OPTICS. It has O(n2) complexity
-    but uses no extra memory. This implementation is not used
-    by the parallel version of OPTICS.
-"""
-
 class Queue:
     def __init__(self):
         self.list = []
@@ -31,6 +25,11 @@ def toDBSCANLabeledPoint(point: Point) -> LabeledPoint:
 
 
 class LocalOPTICSNaive:
+    """
+        A naive implementation of OPTICS. It has O(n2) complexity
+        but uses no extra memory. This implementation is not used
+        by the parallel version of OPTICS.
+    """
     def __init__(self, eps:float, minPoints: int):
         self.minPoints = minPoints
         self.eps = eps
@@ -44,7 +43,6 @@ class LocalOPTICSNaive:
         tree = KDTree(arrayPoints, leaf_size=2, metric = 'euclidean')
         for i in range(arrayPoints.shape[0]):
             
-            #print("current point index:", labeledPoints[i])
             if (not labeledPoints[i].visited):
                 
                 labeledPoints[i].visited = True
