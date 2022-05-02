@@ -21,6 +21,9 @@ Steps:
 
 This code has been tested on CSLinux Server. As the cluster labels are calibrated manually as other papers, labels may be different when testing on other machines (this basicly won't happen as no randomness is involved in clustering algorithm). But please contact us if code does not work correctly!!!
 
+# Note:
+In this repository, we only provide 4 test cases because the 10MB limitation is very strict. We also provide a version with full test cases through email.
+
 
 # Code Structure
 

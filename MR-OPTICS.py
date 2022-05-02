@@ -43,43 +43,6 @@ if __name__ == '__main__':
     corresponding_dict = {1: 1, 2: 2, 0: 0}
     """
 
-    """
-    data = sc.textFile("./dataset/sklearn/circles10000.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.05,
-                         minPoints=10, maxPointsPerPartition=3400)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/clusters6.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.2,
-                         minPoints=100, maxPointsPerPartition=35000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 1, 2: 5, 3: 6, 4:3, 5:2, 6:6, 0: 0}
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/clusters10.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.2,
-                         minPoints=100, maxPointsPerPartition=35000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 1, 2: 9, 3: 2, 4:5, 5:7, 6:6, 7:8, 8:4, 9:3, 0: 0}
-    """
 
     """
     data = sc.textFile("./dataset/sklearn/blobs100000.csv").map(lambda x: x.strip().split(",")).map(
@@ -105,59 +68,6 @@ if __name__ == '__main__':
     end = time.perf_counter()
     print('Running time: %s Seconds'%(end-start))
     corresponding_dict = {1: 1, 2: 2, 0: 0}
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/circles100000.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.05,
-                         minPoints=100, maxPointsPerPartition=35000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 2, 2: 1, 0: 0}
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/moons500000.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.05,
-                         minPoints=100, maxPointsPerPartition=350000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 1, 2: 2, 0: 0}
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/circles500000.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.05,
-                         minPoints=100, maxPointsPerPartition=350000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 2, 2: 1, 0: 0}
-    """
-
-    """
-    data = sc.textFile("./dataset/sklearn/blobs500000.csv").map(lambda x: x.strip().split(",")).map(
-        lambda x: tuple([float(i) for i in x]))
-    lines = data.map(lambda l: Vectors.dense(l)).cache()
-    
-    start = time.perf_counter()
-    model = OPTICS.train(lines, eps=0.3,
-                         minPoints=100, maxPointsPerPartition=175000)
-    end = time.perf_counter()
-    print('Running time: %s Seconds'%(end-start))
-    corresponding_dict = {1: 3, 2: 1, 3: 2, 0: 0}
-    
     """
 
     # %%
